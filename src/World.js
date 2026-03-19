@@ -1,5 +1,7 @@
 import { Background } from './Background.js';
 import { ParticleSystem } from './ParticleSystem.js';
+import { DrawingLayer } from './DrawingLayer.js';
+import { KeyLabel } from './KeyLabel.js';
 import { Car } from './actors/Car.js';
 import { Ball } from './actors/Ball.js';
 import { Rocket } from './actors/Rocket.js';
@@ -15,7 +17,11 @@ export class World {
 
     this.bg = new Background();
     this.particles = new ParticleSystem();
+    this.drawing = new DrawingLayer();
+    this.keyLabels = [];
     this.actors = [];
+
+    this._prevPointerIds = new Set();
 
     this.emergentTimer = 6 + Math.random() * 10;
 
@@ -28,7 +34,6 @@ export class World {
   _spawn() {
     const { w, h } = this;
 
-    // 2 cars on the road
     const car1 = new Car(w * 0.15, h * 0.82);
     this.actors.push(car1);
 
@@ -36,19 +41,15 @@ export class World {
     car2.vx = -car2.baseSpeed;
     this.actors.push(car2);
 
-    // 2 balls
     this.actors.push(new Ball(w * 0.28, h * 0.4));
     this.actors.push(new Ball(w * 0.72, h * 0.32));
 
-    // 1 rocket
     this.actors.push(new Rocket(w * 0.5, h * 0.28));
 
-    // 3 stars
     for (let i = 0; i < 3; i++) {
       this.actors.push(new Star(w * (0.18 + i * 0.32), h * (0.12 + Math.random() * 0.2)));
     }
 
-    // 2 butterflies
     for (let i = 0; i < 2; i++) {
       const b = new Butterfly(w * (0.25 + i * 0.5), h * 0.35);
       b._pickNewTarget();
@@ -59,6 +60,7 @@ export class World {
   update(dt) {
     this.bg.update(dt);
 
+    // ── Taps ─────────────────────────────────────────────
     const taps = this.input.consumeTaps();
     if (taps.length > 0) this.audio.unlock();
 
@@ -72,7 +74,6 @@ export class World {
         }
       }
       if (!hit) {
-        // Tap on empty space → cheerful sparkle
         this.particles.burst(tap.x, tap.y, 10, {
           colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#FF9FF3', '#A8E6CF'],
           minSpeed: 35, maxSpeed: 110, gravity: 120,
@@ -80,6 +81,49 @@ export class World {
       }
     }
 
+    // ── Drawing ───────────────────────────────────────────
+    const pointers = this.input.getActivePointers();
+    const currentIds = new Set(pointers.map(p => p.id));
+
+    for (const p of pointers) {
+      if (!this._prevPointerIds.has(p.id)) {
+        this.drawing.startStroke(p.id, p.x, p.y);
+      } else {
+        this.drawing.addPoint(p.id, p.x, p.y);
+      }
+    }
+    for (const id of this._prevPointerIds) {
+      if (!currentIds.has(id)) this.drawing.endStroke(id);
+    }
+    this._prevPointerIds = currentIds;
+
+    this.drawing.update(dt);
+
+    // ── Key labels ────────────────────────────────────────
+    for (const key of this.input.consumeKeys()) {
+      const label = new KeyLabel(key, this.w / 2, this.h / 2);
+      if (!label.alive) continue;
+
+      this.keyLabels.push(label);
+
+      // Particle burst around where the label appears
+      this.particles.burst(label.x, label.y, 18, {
+        colors: [
+          `hsl(${label.hue}, 100%, 60%)`,
+          `hsl(${(label.hue + 60) % 360}, 100%, 65%)`,
+          '#ffffff',
+        ],
+        minSpeed: 80, maxSpeed: 280, gravity: 150,
+        minSize: 5, maxSize: 14,
+      });
+
+      this.audio.sparkle();
+    }
+
+    this.keyLabels = this.keyLabels.filter(l => l.alive);
+    for (const l of this.keyLabels) l.update(dt);
+
+    // ── Actors ────────────────────────────────────────────
     for (const actor of this.actors) {
       actor.update(dt, this.w, this.h, this.particles);
     }
@@ -87,7 +131,7 @@ export class World {
 
     this.particles.update(dt);
 
-    // Emergent events
+    // ── Emergent events ───────────────────────────────────
     this.emergentTimer -= dt;
     if (this.emergentTimer <= 0) {
       this._emergent();
@@ -104,10 +148,7 @@ export class World {
   }
 
   _spawnTemporaryStar() {
-    const s = new Star(
-      60 + Math.random() * (this.w - 120),
-      40 + Math.random() * (this.h * 0.38)
-    );
+    const s = new Star(60 + Math.random() * (this.w - 120), 40 + Math.random() * (this.h * 0.38));
     s.scale = 0;
     this.actors.push(s);
     setTimeout(() => { s.alive = false; }, 12000);
@@ -140,8 +181,18 @@ export class World {
 
   draw() {
     const { ctx, w, h } = this;
+
+    // Background
     this.bg.draw(ctx, w, h);
+
+    // World actors + particles
     for (const actor of this.actors) actor.draw(ctx);
     this.particles.draw(ctx);
+
+    // Drawing layer on top of world, below key labels
+    this.drawing.draw(ctx);
+
+    // Key labels — topmost
+    for (const l of this.keyLabels) l.draw(ctx);
   }
 }

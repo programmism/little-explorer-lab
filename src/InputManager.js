@@ -2,6 +2,7 @@ export class InputManager {
   constructor(canvas) {
     this.canvas = canvas;
     this._taps = [];
+    this._keys = [];
     this.activeTouches = new Map();
     this.mouseDown = false;
     this.mousePos = null;
@@ -67,16 +68,15 @@ export class InputManager {
 
     c.addEventListener('touchcancel', e => {
       e.preventDefault();
-      for (const t of e.changedTouches) {
-        this.activeTouches.delete(t.identifier);
-      }
+      for (const t of e.changedTouches) this.activeTouches.delete(t.identifier);
       this._cancelExit();
     }, { passive: false });
 
-    // Keyboard — swallow everything
+    // Keyboard — capture key, then swallow
     window.addEventListener('keydown', e => {
       e.preventDefault();
       e.stopPropagation();
+      this._keys.push(e.key);
     }, true);
     window.addEventListener('keyup', e => {
       e.preventDefault();
@@ -103,7 +103,6 @@ export class InputManager {
   }
 
   _inExitCorner(pos) {
-    // Top-right 100×100 px corner
     return pos.x > this.canvas.width - 100 && pos.y < 100;
   }
 
@@ -153,5 +152,23 @@ export class InputManager {
     const taps = this._taps;
     this._taps = [];
     return taps;
+  }
+
+  consumeKeys() {
+    const keys = this._keys;
+    this._keys = [];
+    return keys;
+  }
+
+  // Returns [{id, x, y}] for all currently held pointers
+  getActivePointers() {
+    const result = [];
+    if (this.mouseDown && this.mousePos) {
+      result.push({ id: 'mouse', x: this.mousePos.x, y: this.mousePos.y });
+    }
+    for (const [id, pos] of this.activeTouches) {
+      result.push({ id, x: pos.x, y: pos.y });
+    }
+    return result;
   }
 }
