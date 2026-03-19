@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://programmism.github.io/little-explorer-lab/sitemap.xml

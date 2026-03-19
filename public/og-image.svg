@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4A9EE0"/>
+      <stop offset="70%" stop-color="#87CEEB"/>
+      <stop offset="100%" stop-color="#5BAD4E"/>
+    </linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#555"/>
+      <stop offset="100%" stop-color="#333"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#sky)"/>
+
+  <!-- Sun -->
+  <circle cx="1050" cy="110" r="60" fill="#FFE44D" filter="url(#glow)" opacity="0.9"/>
+
+  <!-- Clouds -->
+  <g fill="white" opacity="0.85">
+    <ellipse cx="200" cy="90" rx="90" ry="45"/>
+    <ellipse cx="270" cy="75" rx="65" ry="38"/>
+    <ellipse cx="150" cy="95" rx="55" ry="32"/>
+    <ellipse cx="700" cy="70" rx="75" ry="38"/>
+    <ellipse cx="770" cy="58" rx="55" ry="32"/>
+    <ellipse cx="650" cy="78" rx="48" ry="28"/>
+  </g>
+
+  <!-- Ground / road -->
+  <rect x="0" y="460" width="1200" height="170" fill="#5BAD4E"/>
+  <rect x="0" y="490" width="1200" height="140" fill="url(#road)"/>
+  <rect x="0" y="560" width="1200" height="5" fill="#EEE" opacity="0.6" rx="2"/>
+  <!-- Road dashes -->
+  <g fill="#FFFD99" opacity="0.7">
+    <rect x="30"  y="558" width="80" height="8" rx="4"/>
+    <rect x="190" y="558" width="80" height="8" rx="4"/>
+    <rect x="350" y="558" width="80" height="8" rx="4"/>
+    <rect x="510" y="558" width="80" height="8" rx="4"/>
+    <rect x="670" y="558" width="80" height="8" rx="4"/>
+    <rect x="830" y="558" width="80" height="8" rx="4"/>
+    <rect x="990" y="558" width="80" height="8" rx="4"/>
+  </g>
+
+  <!-- Actors (emoji as text) -->
+  <text x="155" y="490" font-size="110" text-anchor="middle">🚗</text>
+  <text x="750" y="490" font-size="110" text-anchor="middle" transform="scale(-1,1) translate(-1500,0)">🚗</text>
+  <text x="600" y="320" font-size="110" text-anchor="middle">🚀</text>
+  <text x="300" y="240" font-size="90"  text-anchor="middle">⭐</text>
+  <text x="880" y="200" font-size="90"  text-anchor="middle">⭐</text>
+  <text x="180" y="300" font-size="80"  text-anchor="middle">🦋</text>
+  <text x="950" y="360" font-size="95"  text-anchor="middle">⚽</text>
+
+  <!-- Particle dots (decorative) -->
+  <g filter="url(#glow)">
+    <circle cx="400" cy="160" r="8"  fill="#FFD700" opacity="0.9"/>
+    <circle cx="430" cy="130" r="6"  fill="#FF6B6B" opacity="0.8"/>
+    <circle cx="460" cy="155" r="7"  fill="#4ECDC4" opacity="0.9"/>
+    <circle cx="380" cy="185" r="5"  fill="#FF9FF3" opacity="0.8"/>
+    <circle cx="820" cy="250" r="8"  fill="#FFD700" opacity="0.9"/>
+    <circle cx="855" cy="225" r="6"  fill="#A8E6CF" opacity="0.8"/>
+    <circle cx="800" cy="270" r="5"  fill="#FF6B6B" opacity="0.7"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="620" font-size="0">Little Explorer Lab</text>
+
+  <!-- Dark overlay band for title -->
+  <rect x="0" y="0" width="1200" height="130" fill="rgba(0,0,0,0.32)"/>
+
+  <!-- Title text -->
+  <text x="600" y="58" font-family="'Segoe UI', Arial, sans-serif" font-size="52" font-weight="700"
+        fill="white" text-anchor="middle" filter="url(#glow)">Little Explorer Lab</text>
+  <text x="600" y="105" font-family="'Segoe UI', Arial, sans-serif" font-size="28"
+        fill="rgba(255,255,255,0.9)" text-anchor="middle">
+    Safe interactive playground for toddlers aged 2–4
+  </text>
+
+  <!-- URL badge -->
+  <rect x="370" y="590" width="460" height="36" rx="18" fill="rgba(0,0,0,0.45)"/>
+  <text x="600" y="614" font-family="'Segoe UI', Arial, sans-serif" font-size="18"
+        fill="rgba(255,255,255,0.85)" text-anchor="middle">
+    programmism.github.io/little-explorer-lab
+  </text>
+</svg>
