@@ -1,0 +1,195 @@
+// Day/night cycle: 0=dawn → 0.25=noon → 0.5=dusk → 0.75=midnight → 1=dawn
+const SKY_STOPS = [
+  { r: 255, g: 160, b: 100 }, // 0.00 dawn
+  { r: 135, g: 206, b: 235 }, // 0.25 day
+  { r: 220, g: 110, b: 70  }, // 0.50 dusk
+  { r: 10,  g: 10,  b: 40  }, // 0.75 night
+  { r: 255, g: 160, b: 100 }, // 1.00 dawn (loop)
+];
+
+const GROUND_STOPS = [
+  { r: 90,  g: 160, b: 55  }, // dawn
+  { r: 75,  g: 185, b: 55  }, // day
+  { r: 70,  g: 120, b: 45  }, // dusk
+  { r: 15,  g: 35,  b: 15  }, // night
+  { r: 90,  g: 160, b: 55  }, // dawn
+];
+
+function lerp(a, b, t) {
+  return { r: a.r + (b.r - a.r) * t, g: a.g + (b.g - a.g) * t, b: a.b + (b.b - a.b) * t };
+}
+
+function sampleStops(stops, t) {
+  const n = stops.length - 1;
+  const pos = t * n;
+  const i = Math.min(Math.floor(pos), n - 1);
+  return lerp(stops[i], stops[i + 1], pos - i);
+}
+
+function rgb(c) { return `rgb(${c.r|0},${c.g|0},${c.b|0})`; }
+
+export class Background {
+  constructor() {
+    this.time = 0;           // 0–1 full cycle
+    this.cycleDuration = 120; // seconds
+
+    this.clouds = Array.from({ length: 6 }, () => ({
+      x: Math.random() * 1.2 - 0.1,
+      y: 0.05 + Math.random() * 0.22,
+      size: 0.05 + Math.random() * 0.06,
+      speed: 0.0015 + Math.random() * 0.002,
+      opacity: 0.6 + Math.random() * 0.35,
+    }));
+
+    this.stars = Array.from({ length: 90 }, () => ({
+      x: Math.random(),
+      y: Math.random() * 0.58,
+      r: 1 + Math.random() * 2.5,
+      phase: Math.random() * Math.PI * 2,
+      speed: 1.5 + Math.random() * 3,
+    }));
+  }
+
+  update(dt) {
+    this.time = (this.time + dt / this.cycleDuration) % 1;
+    for (const c of this.clouds) {
+      c.x += c.speed * dt;
+      if (c.x > 1.15) c.x = -0.15;
+    }
+    for (const s of this.stars) {
+      s.phase += s.speed * dt;
+    }
+  }
+
+  // How bright the stars are (0 = hidden, 1 = full)
+  _starAlpha() {
+    const t = this.time;
+    if (t < 0.10) return 1 - t / 0.10;   // dawn: fade out
+    if (t < 0.40) return 0;               // day: invisible
+    if (t < 0.55) return (t - 0.40) / 0.15; // dusk: fade in
+    return 1;                              // night: full
+  }
+
+  _drawCelestialBody(ctx, w, horizonY) {
+    const t = this.time;
+    let bx, by, isMoon;
+
+    if (t >= 0.08 && t <= 0.52) {
+      const p = (t - 0.08) / 0.44;
+      bx = w * p;
+      by = horizonY * (0.28 - Math.sin(p * Math.PI) * 0.22);
+      isMoon = false;
+    } else if (t >= 0.55 && t <= 0.95) {
+      const p = (t - 0.55) / 0.40;
+      bx = w * p;
+      by = horizonY * (0.28 - Math.sin(p * Math.PI) * 0.22);
+      isMoon = true;
+    } else {
+      return;
+    }
+
+    if (!isMoon) {
+      ctx.save();
+      ctx.shadowColor = '#FFE44D';
+      ctx.shadowBlur = 40;
+      ctx.fillStyle = '#FFE44D';
+      ctx.beginPath();
+      ctx.arc(bx, by, 36, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else {
+      const skyC = sampleStops(SKY_STOPS, t);
+      ctx.save();
+      ctx.shadowColor = '#D8D8C0';
+      ctx.shadowBlur = 25;
+      ctx.fillStyle = '#EEEEDD';
+      ctx.beginPath();
+      ctx.arc(bx, by, 28, 0, Math.PI * 2);
+      ctx.fill();
+      // Crescent cutout
+      ctx.fillStyle = rgb(skyC);
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(bx + 11, by - 4, 22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  _drawCloud(ctx, cx, cy, size) {
+    const s = size;
+    ctx.beginPath();
+    ctx.arc(cx,          cy,          s * 0.50, 0, Math.PI * 2);
+    ctx.arc(cx + s * 0.45, cy - s * 0.12, s * 0.38, 0, Math.PI * 2);
+    ctx.arc(cx + s * 0.85, cy,          s * 0.42, 0, Math.PI * 2);
+    ctx.arc(cx + s * 0.28, cy + s * 0.18, s * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  _drawRoad(ctx, w, h, horizonY) {
+    const roadY = horizonY + 5;
+    const roadH = h - roadY;
+    ctx.fillStyle = '#4a4a4a';
+    ctx.fillRect(0, roadY, w, roadH);
+
+    // Dashed centre line
+    ctx.strokeStyle = '#eeee99';
+    ctx.lineWidth = Math.max(3, w * 0.004);
+    ctx.setLineDash([w * 0.06, w * 0.06]);
+    ctx.beginPath();
+    ctx.moveTo(0, roadY + roadH * 0.45);
+    ctx.lineTo(w, roadY + roadH * 0.45);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  draw(ctx, w, h) {
+    const horizonY = h * 0.70;
+    const skyC = sampleStops(SKY_STOPS, this.time);
+    const gndC = sampleStops(GROUND_STOPS, this.time);
+    const starA = this._starAlpha();
+
+    // Sky
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+    skyGrad.addColorStop(0, rgb(skyC));
+    skyGrad.addColorStop(1, rgb(lerp(skyC, { r: 255, g: 255, b: 255 }, 0.15)));
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, horizonY);
+
+    // Stars
+    if (starA > 0) {
+      ctx.fillStyle = '#ffffff';
+      for (const s of this.stars) {
+        ctx.globalAlpha = starA * (0.4 + 0.6 * Math.abs(Math.sin(s.phase)));
+        ctx.beginPath();
+        ctx.arc(s.x * w, s.y * horizonY, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Sun / Moon
+    this._drawCelestialBody(ctx, w, horizonY);
+
+    // Clouds (fade out at night)
+    const cloudA = Math.max(0, 1 - starA * 0.85);
+    if (cloudA > 0.02) {
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      for (const c of this.clouds) {
+        ctx.globalAlpha = c.opacity * cloudA;
+        this._drawCloud(ctx, c.x * w, c.y * horizonY, c.size * w);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Grass
+    const gndGrad = ctx.createLinearGradient(0, horizonY, 0, h);
+    gndGrad.addColorStop(0, rgb(gndC));
+    gndGrad.addColorStop(1, rgb(lerp(gndC, { r: 0, g: 0, b: 0 }, 0.25)));
+    ctx.fillStyle = gndGrad;
+    ctx.fillRect(0, horizonY, w, h - horizonY);
+
+    // Road
+    this._drawRoad(ctx, w, h, horizonY);
+  }
+}
