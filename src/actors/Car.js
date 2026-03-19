@@ -46,7 +46,7 @@ export class Car extends Actor {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y + this.bounceY);
-    if (this.vx < 0) ctx.scale(-1, 1);
+    if (this.vx > 0) ctx.scale(-1, 1);
     ctx.scale(this.scale, this.scale);
     if (this.colorFlash > 0) {
       ctx.filter = `hue-rotate(${this.colorFlash * 360}deg) brightness(1.4)`;
