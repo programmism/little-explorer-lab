@@ -15,7 +15,7 @@
 ## What is it?
 
 A kid-safe fullscreen world where **every touch causes a friendly reaction**.
-For toddlers (2–3): pure cause and effect. For older kids (4–5): mini-goals, collectibles, and progression.
+For toddlers (2–3): pure cause and effect. For older kids (4–5): mini-goals with star progress, a collectible album, themed rooms to explore, and an owl companion that reacts alongside them.
 
 > "I touched something — and the world responded."
 
@@ -35,7 +35,7 @@ Works on phones, tablets, laptops. Fully offline. Zero ads. Zero links.
 | ⭐ **Stars** | Drift through the sky — tap for a golden sparkle burst |
 | 🦋 **Butterflies** | Wander freely — tap to scatter them away |
 | 🎨 **Drawing** | Drag a finger or mouse to paint glowing rainbow trails that fade |
-| ⌨️ **Keyboard** | Every key press shows a giant colorful floating letter with sound |
+| ⌨️ **Keyboard** | Every key press shows a giant colorful floating letter with spoken pronunciation |
 | 🌅 **Day/night cycle** | The world slowly cycles from dawn → noon → dusk → midnight |
 | 🎆 **Emergent events** | Random confetti, rainbow bursts, new actors appear spontaneously |
 | 🔇 **Synthesized audio** | All sounds generated via Web Audio API — no audio files needed |
@@ -43,6 +43,15 @@ Works on phones, tablets, laptops. Fully offline. Zero ads. Zero links.
 | 🚪 **Safe exit** | Hold top-right corner for 3 seconds to exit fullscreen |
 | 🎯 **Launch pad** | Aim and launch rockets at moving targets for points |
 | 💥 **Car crashes** | Cars can swerve into oncoming lane and crash with explosion effects |
+| 🏆 **Mini-goals** | Star progress bar — hit targets to fill stars, then celebrate with fanfare |
+| 🎵 **Background music** | Ambient pentatonic melodies that crossfade between day and night |
+| 📖 **Collectible album** | Tap the book icon to view collected target emojis with counts |
+| 🌍 **Themed rooms** | Swipe to explore Road, Space, and Underwater scenes |
+| 🦉 **Owl companion** | Friendly owl that celebrates hits, sleeps at night, and waves when idle |
+| 🐠 **Fish** | Underwater scene actors — swim around and scatter on tap |
+| 🧑‍🚀 **Astronaut** | Space scene actors — float and spin in zero gravity |
+| 🔊 **Letter speech** | Letters spoken aloud via Speech Synthesis API on key press |
+| 🎺 **Fanfare** | Triumphant ascending melody when a goal is completed |
 
 ---
 
@@ -52,14 +61,14 @@ Planned improvements to better engage children aged 4–5:
 
 | Priority | Feature | Issue |
 |----------|---------|-------|
-| 🔴 High | Mini-goals with celebrations | [#6](https://github.com/programmism/little-explorer-lab/issues/6) |
-| 🔴 High | Letter pronunciation on keypress | [#7](https://github.com/programmism/little-explorer-lab/issues/7) |
-| 🔴 High | Ambient background music (day/night) | [#8](https://github.com/programmism/little-explorer-lab/issues/8) |
-| 🔴 High | Fix tap vs drawing input conflict | [#9](https://github.com/programmism/little-explorer-lab/issues/9) |
-| 🟡 Medium | Themed rooms with swipe navigation | [#10](https://github.com/programmism/little-explorer-lab/issues/10) |
-| 🟡 Medium | Companion character | [#11](https://github.com/programmism/little-explorer-lab/issues/11) |
-| 🟡 Medium | Collectible album for targets | [#12](https://github.com/programmism/little-explorer-lab/issues/12) |
-| 🟡 Medium | Visual progress bar instead of score | [#13](https://github.com/programmism/little-explorer-lab/issues/13) |
+| ✅ Done | Mini-goals with celebrations | [#6](https://github.com/programmism/little-explorer-lab/issues/6) |
+| ✅ Done | Letter pronunciation on keypress | [#7](https://github.com/programmism/little-explorer-lab/issues/7) |
+| ✅ Done | Ambient background music (day/night) | [#8](https://github.com/programmism/little-explorer-lab/issues/8) |
+| ✅ Done | Fix tap vs drawing input conflict | [#9](https://github.com/programmism/little-explorer-lab/issues/9) |
+| ✅ Done | Themed rooms with swipe navigation | [#10](https://github.com/programmism/little-explorer-lab/issues/10) |
+| ✅ Done | Companion character | [#11](https://github.com/programmism/little-explorer-lab/issues/11) |
+| ✅ Done | Collectible album for targets | [#12](https://github.com/programmism/little-explorer-lab/issues/12) |
+| ✅ Done | Visual progress bar instead of score | [#13](https://github.com/programmism/little-explorer-lab/issues/13) |
 | 🟢 Low | Coloring mode with animated results | [#14](https://github.com/programmism/little-explorer-lab/issues/14) |
 | 🟢 Low | Musical instrument mode | [#15](https://github.com/programmism/little-explorer-lab/issues/15) |
 | 🟢 Low | Device tilt/accelerometer interactions | [#16](https://github.com/programmism/little-explorer-lab/issues/16) |
@@ -101,24 +110,31 @@ npm run build
 
 ```
 src/
-  main.js            # Entry point, fullscreen request
-  GameLoop.js        # requestAnimationFrame loop with dt cap
-  InputManager.js    # Mouse, touch, keyboard capture + exit gesture
-  AudioManager.js    # Web Audio API synthesized sounds
-  ParticleSystem.js  # Burst and trail particle effects
-  DrawingLayer.js    # Freehand rainbow drawing with fade
-  KeyLabel.js        # Floating letter animation on key press
-  Background.js      # Animated day/night sky, clouds, stars, road
-  World.js           # Scene manager, emergent events, input routing
+  main.js              # Entry point, fullscreen request
+  GameLoop.js          # requestAnimationFrame loop with dt cap
+  InputManager.js      # Mouse, touch, keyboard capture + tap-vs-drag fix + exit gesture
+  AudioManager.js      # Web Audio API synthesized sounds + speech synthesis
+  MusicManager.js      # Ambient background music with day/night crossfade
+  GoalManager.js       # Mini-goals with star progress bar + fanfare celebration
+  CollectionManager.js # Collectible album with persistence (localStorage)
+  SceneManager.js      # Themed rooms (Road, Space, Underwater) + swipe navigation
+  ParticleSystem.js    # Burst and trail particle effects
+  DrawingLayer.js      # Freehand rainbow drawing with fade
+  KeyLabel.js          # Floating letter animation on key press
+  Background.js        # Animated day/night sky, clouds, stars, road
+  World.js             # Scene manager, emergent events, input routing
   actors/
-    Actor.js         # Base class
-    Car.js           # Physics + color flash + honk + swerve + crash
-    Ball.js          # Gravity + squish + color change
-    Rocket.js        # Launch trajectory + particle trail
-    Star.js          # Float + sparkle burst
-    Butterfly.js     # Wander AI + scatter on tap
-    Target.js        # Score targets — bob, drift, explode on hit
-    LaunchPad.js     # Rocket aiming + reload state
+    Actor.js           # Base class
+    Car.js             # Physics + color flash + honk + swerve + crash
+    Ball.js            # Gravity + squish + color change
+    Rocket.js          # Launch trajectory + particle trail
+    Star.js            # Float + sparkle burst
+    Butterfly.js       # Wander AI + scatter on tap
+    Target.js          # Score targets — bob, drift, explode on hit
+    LaunchPad.js       # Rocket aiming + reload state
+    Companion.js       # Owl companion — celebrates, sleeps, waves, reacts to taps
+    Fish.js            # Underwater fish — swim, scatter on tap
+    Astronaut.js       # Space actors — float and spin in zero gravity
 ```
 
 ---
