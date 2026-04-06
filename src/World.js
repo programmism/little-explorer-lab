@@ -185,10 +185,14 @@ export class World {
       }
     }
 
-    // ── Drawing ───────────────────────────────────────────
+    // ── Drawing (only for pointers that exceeded the drag threshold) ──
     const currentIds = new Set(pointers.map(p => p.id));
+    const drawingIds = new Set();
 
     for (const p of pointers) {
+      if (!this.input.isDrawing(p.id)) continue; // not dragging yet — skip
+
+      drawingIds.add(p.id);
       if (!this._prevPointerIds.has(p.id)) {
         this.drawing.startStroke(p.id, p.x, p.y);
       } else {
@@ -196,9 +200,9 @@ export class World {
       }
     }
     for (const id of this._prevPointerIds) {
-      if (!currentIds.has(id)) this.drawing.endStroke(id);
+      if (!drawingIds.has(id)) this.drawing.endStroke(id);
     }
-    this._prevPointerIds = currentIds;
+    this._prevPointerIds = drawingIds;
 
     this.drawing.update(dt);
 
