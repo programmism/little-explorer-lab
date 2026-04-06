@@ -340,10 +340,27 @@ export class World {
     this.keyLabels = this.keyLabels.filter(l => l.alive);
     for (const l of this.keyLabels) l.update(dt);
 
+    // ── Device tilt → actor forces ───────────────────────
+    const tilt = this.input.getTilt();
+
     // ── Update actors for ALL scenes (so they stay alive) ──
     for (let s = 0; s < this.sceneActors.length; s++) {
       for (const actor of this.sceneActors[s]) {
         actor.update(dt, this.w, this.h, this.particles);
+
+        // Apply tilt forces to specific actor types
+        if (tilt.x !== 0 || tilt.y !== 0) {
+          if (actor instanceof Ball) {
+            actor.vx += tilt.x * 200 * dt;
+            actor.vy += tilt.y * 200 * dt;
+          } else if (actor instanceof Butterfly || actor instanceof Fish) {
+            actor.targetX += tilt.x * 30 * dt;
+            actor.targetY += tilt.y * 30 * dt;
+          } else if (actor instanceof Star) {
+            actor.tiltOffsetX = tilt.x * 20;
+            actor.tiltOffsetY = tilt.y * 20;
+          }
+        }
       }
     }
 
