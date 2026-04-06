@@ -10,6 +10,7 @@ import { Butterfly } from './actors/Butterfly.js';
 import { Target } from './actors/Target.js';
 import { LaunchPad } from './actors/LaunchPad.js';
 import { GoalManager } from './GoalManager.js';
+import { CollectionManager } from './CollectionManager.js';
 
 export class World {
   constructor(canvas, ctx, input, audio) {
@@ -30,6 +31,7 @@ export class World {
     this.targetTimer = 3;
 
     this.goals = new GoalManager();
+    this.album = new CollectionManager();
     this.launchPad = null;
     this._prevW = this.w;
     this._prevH = this.h;
@@ -130,6 +132,20 @@ export class World {
     if (taps.length > 0) this.audio.unlock();
 
     for (const tap of taps) {
+      // Album icon tap — toggle open/close
+      if (this.album.hitTestIcon(tap.x, tap.y)) {
+        this.album.toggle();
+        continue;
+      }
+
+      // If album is open, tap outside panel closes it; swallow the tap
+      if (this.album.open) {
+        if (this.album.hitTestOutsidePanel(tap.x, tap.y, this.w, this.h)) {
+          this.album.open = false;
+        }
+        continue;
+      }
+
       let hit = false;
       for (let i = this.actors.length - 1; i >= 0; i--) {
         const actor = this.actors[i];
@@ -208,6 +224,7 @@ export class World {
         if (dist < (rocket.size + target.size) * 0.45) {
           target.explode(this.particles, this.audio);
           rocket.alive = false; // rocket consumed on hit
+          this.album.collect(target.emoji);
           const goalDone = this.goals.recordHit();
           if (goalDone) {
             this.goals.triggerCelebration(this.particles, this.audio, this.w, this.h);
@@ -243,6 +260,9 @@ export class World {
 
     // ── Goal tracking ─────────────────────────────────
     this.goals.update(dt);
+
+    // ── Collection album ──────────────────────────────
+    this.album.update(dt);
 
     // ── Emergent events ───────────────────────────────────
     this.emergentTimer -= dt;
@@ -366,5 +386,8 @@ export class World {
 
     // ── Goal progress stars ────────────────────────────
     this.goals.draw(ctx, w);
+
+    // ── Collection album icon + panel ────────────────
+    this.album.draw(ctx, w, h);
   }
 }
