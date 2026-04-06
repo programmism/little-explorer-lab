@@ -29,9 +29,6 @@ export class World {
 
     this.emergentTimer = 6 + Math.random() * 10;
     this.targetTimer = 3;
-    this.score = 0;
-    this.scoreDisplay = 0;
-    this.scorePop = 0;
 
     this.goals = new GoalManager();
     this.album = new CollectionManager();
@@ -227,8 +224,6 @@ export class World {
         if (dist < (rocket.size + target.size) * 0.45) {
           target.explode(this.particles, this.audio);
           rocket.alive = false; // rocket consumed on hit
-          this.score += 1;
-          this.scorePop = 1;
           this.album.collect(target.emoji);
           const goalDone = this.goals.recordHit();
           if (goalDone) {
@@ -268,10 +263,6 @@ export class World {
 
     // ── Collection album ──────────────────────────────
     this.album.update(dt);
-
-    // ── Score animation ─────────────────────────────────
-    this.scoreDisplay += (this.score - this.scoreDisplay) * dt * 8;
-    this.scorePop = Math.max(0, this.scorePop - dt * 3);
 
     // ── Emergent events ───────────────────────────────────
     this.emergentTimer -= dt;
