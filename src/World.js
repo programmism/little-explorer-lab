@@ -9,6 +9,7 @@ import { Star } from './actors/Star.js';
 import { Butterfly } from './actors/Butterfly.js';
 import { Target } from './actors/Target.js';
 import { LaunchPad } from './actors/LaunchPad.js';
+import { GoalManager } from './GoalManager.js';
 
 export class World {
   constructor(canvas, ctx, input, audio) {
@@ -31,6 +32,7 @@ export class World {
     this.scoreDisplay = 0;
     this.scorePop = 0;
 
+    this.goals = new GoalManager();
     this.launchPad = null;
     this._prevW = this.w;
     this._prevH = this.h;
@@ -210,6 +212,10 @@ export class World {
           rocket.alive = false; // rocket consumed on hit
           this.score += 1;
           this.scorePop = 1;
+          const goalDone = this.goals.recordHit();
+          if (goalDone) {
+            this.goals.triggerCelebration(this.particles, this.audio, this.w, this.h);
+          }
         }
       }
     }
@@ -238,6 +244,9 @@ export class World {
       this._spawnTarget();
       this.targetTimer = 3 + Math.random() * 4;
     }
+
+    // ── Goal tracking ─────────────────────────────────
+    this.goals.update(dt);
 
     // ── Score animation ─────────────────────────────────
     this.scoreDisplay += (this.score - this.scoreDisplay) * dt * 8;
@@ -363,24 +372,7 @@ export class World {
     // Key labels — topmost
     for (const l of this.keyLabels) l.draw(ctx);
 
-    // ── Score display ───────────────────────────────────
-    if (this.score > 0) {
-      const displayScore = Math.round(this.scoreDisplay);
-      const popScale = 1 + this.scorePop * 0.4;
-      ctx.save();
-      ctx.translate(w / 2, 38);
-      ctx.scale(popScale, popScale);
-      ctx.font = 'bold 32px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-      ctx.fillText(`💥 ${displayScore}`, 2, 2);
-      ctx.fillStyle = '#FFD700';
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.lineWidth = 3;
-      ctx.strokeText(`💥 ${displayScore}`, 0, 0);
-      ctx.fillText(`💥 ${displayScore}`, 0, 0);
-      ctx.restore();
-    }
+    // ── Goal progress stars ────────────────────────────
+    this.goals.draw(ctx, w);
   }
 }

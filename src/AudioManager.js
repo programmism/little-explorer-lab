@@ -134,4 +134,24 @@ export class AudioManager {
       this._osc(1047, 'sine', 0.12, 0.12);
     }, 160);
   }
+
+  fanfare() {
+    // Triumphant ascending fanfare for goal completion
+    const notes = [
+      { freq: 523, delay: 0,   dur: 0.2,  vol: 0.3  },  // C5
+      { freq: 659, delay: 150, dur: 0.2,  vol: 0.3  },  // E5
+      { freq: 784, delay: 300, dur: 0.2,  vol: 0.3  },  // G5
+      { freq: 1047, delay: 500, dur: 0.4, vol: 0.35 },  // C6 (hold)
+      { freq: 784, delay: 700, dur: 0.15, vol: 0.2  },  // G5
+      { freq: 1047, delay: 850, dur: 0.6, vol: 0.35 },  // C6 (long hold)
+    ];
+    for (const n of notes) {
+      setTimeout(() => this._osc(n.freq, 'sine', n.dur, n.vol), n.delay);
+    }
+    // Add shimmer layer
+    setTimeout(() => {
+      this._osc(1319, 'sine', 0.3, 0.12); // E6
+      this._osc(1568, 'sine', 0.25, 0.08); // G6
+    }, 550);
+  }
 }
