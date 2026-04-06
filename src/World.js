@@ -9,6 +9,7 @@ import { Star } from './actors/Star.js';
 import { Butterfly } from './actors/Butterfly.js';
 import { Target } from './actors/Target.js';
 import { LaunchPad } from './actors/LaunchPad.js';
+import { Companion } from './actors/Companion.js';
 import { GoalManager } from './GoalManager.js';
 import { CollectionManager } from './CollectionManager.js';
 
@@ -32,6 +33,7 @@ export class World {
 
     this.goals = new GoalManager();
     this.album = new CollectionManager();
+    this.companion = null;
     this.launchPad = null;
     this._prevW = this.w;
     this._prevH = this.h;
@@ -80,6 +82,10 @@ export class World {
       const ty = h * (0.08 + Math.random() * 0.25);
       this.actors.push(new Target(tx, ty));
     }
+
+    // Companion owl — bottom-left, above the road
+    this.companion = new Companion(50, h * 0.70 - 10);
+    this.actors.push(this.companion);
   }
 
   _launchRocket(tapX, tapY) {
@@ -118,6 +124,11 @@ export class World {
     this.bg.update(dt);
     this.audio.music.update(dt, this.bg.time);
 
+    // ── Feed time-of-day to companion ────────────────────
+    if (this.companion) {
+      this.companion.timeOfDay = this.bg.time;
+    }
+
     // ── Pointer tracking for aim line ──────────────────
     const pointers = this.input.getActivePointers();
     if (pointers.length > 0 && this.launchPad) {
@@ -130,6 +141,11 @@ export class World {
     // ── Taps ─────────────────────────────────────────────
     const taps = this.input.consumeTaps();
     if (taps.length > 0) this.audio.unlock();
+
+    // Notify companion of activity on any tap
+    if (taps.length > 0 && this.companion) {
+      this.companion.notifyActivity();
+    }
 
     for (const tap of taps) {
       // Album icon tap — toggle open/close
@@ -205,6 +221,9 @@ export class World {
 
       this.audio.sparkle();
       this.audio.speakLetter(key);
+
+      // Notify companion of keyboard activity
+      if (this.companion) this.companion.notifyActivity();
     }
 
     this.keyLabels = this.keyLabels.filter(l => l.alive);
@@ -228,6 +247,9 @@ export class World {
           const goalDone = this.goals.recordHit();
           if (goalDone) {
             this.goals.triggerCelebration(this.particles, this.audio, this.w, this.h);
+            if (this.companion) this.companion.goalComplete();
+          } else {
+            if (this.companion) this.companion.goalHit();
           }
         }
       }
@@ -277,7 +299,13 @@ export class World {
     const sy = newH / oldH;
 
     for (const actor of this.actors) {
-      if (actor instanceof LaunchPad) {
+      if (actor instanceof Companion) {
+        // Fixed position: bottom-left, above road
+        actor.baseX = 50;
+        actor.baseY = newH * 0.70 - 10;
+        actor.x = actor.baseX;
+        actor.y = actor.baseY;
+      } else if (actor instanceof LaunchPad) {
         // Fixed position: always bottom center
         actor.x = newW * 0.5;
         actor.y = newH * 0.72;
