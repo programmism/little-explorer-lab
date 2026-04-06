@@ -1,6 +1,65 @@
+// Descriptive names for special keys (spoken aloud)
+const SPEAK_NAMES = {
+  ' ':          'Space',
+  'Enter':      'Enter',
+  'Backspace':  'Backspace',
+  'Escape':     'Escape',
+  'ArrowUp':    'Up',
+  'ArrowDown':  'Down',
+  'ArrowLeft':  'Left',
+  'ArrowRight': 'Right',
+  'Tab':        'Tab',
+  'Delete':     'Delete',
+  'Home':       'Home',
+  'End':        'End',
+  'PageUp':     'Page Up',
+  'PageDown':   'Page Down',
+};
+
+// Keys that should not be pronounced at all
+const SILENT_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock']);
+
 export class AudioManager {
   constructor() {
     this._ctx = null;
+    this._speechVoice = null;
+    this._speechReady = false;
+    this._initSpeech();
+  }
+
+  _initSpeech() {
+    if (typeof speechSynthesis === 'undefined') return;
+    // Voices may load asynchronously; pick a child-friendly one when available
+    const pick = () => {
+      const voices = speechSynthesis.getVoices();
+      if (!voices.length) return;
+      // Prefer English voices; favour ones with "child", "kid", or female names
+      const english = voices.filter(v => v.lang.startsWith('en'));
+      const friendly = english.find(v => /child|kid/i.test(v.name));
+      this._speechVoice = friendly || english[0] || voices[0];
+      this._speechReady = true;
+    };
+    pick();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.addEventListener('voiceschanged', pick);
+    }
+  }
+
+  speakLetter(key) {
+    if (!this._speechReady) return;
+    if (SILENT_KEYS.has(key)) return;
+
+    const text = SPEAK_NAMES[key] ?? (key.length === 1 ? key.toUpperCase() : key);
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 0.85;
+    utter.pitch = 1.3;
+    utter.volume = 1.0;
+    if (this._speechVoice) utter.voice = this._speechVoice;
+
+    // Cancel any previous speech so letters don't queue up
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
   }
 
   unlock() {

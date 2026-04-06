@@ -188,6 +188,7 @@ export class World {
       });
 
       this.audio.sparkle();
+      this.audio.speakLetter(key);
     }
 
     this.keyLabels = this.keyLabels.filter(l => l.alive);
