@@ -7,6 +7,7 @@ import { Ball } from './actors/Ball.js';
 import { Rocket } from './actors/Rocket.js';
 import { Star } from './actors/Star.js';
 import { Butterfly } from './actors/Butterfly.js';
+import { Target } from './actors/Target.js';
 
 export class World {
   constructor(canvas, ctx, input, audio) {
@@ -24,6 +25,10 @@ export class World {
     this._prevPointerIds = new Set();
 
     this.emergentTimer = 6 + Math.random() * 10;
+    this.targetTimer = 3;   // spawn first target after 3 seconds
+    this.score = 0;
+    this.scoreDisplay = 0;  // animated score display
+    this.scorePop = 0;      // scale pop effect on score change
 
     this._spawn();
   }
@@ -54,6 +59,13 @@ export class World {
       const b = new Butterfly(w * (0.25 + i * 0.5), h * 0.35);
       b._pickNewTarget();
       this.actors.push(b);
+    }
+
+    // Initial targets to aim at
+    for (let i = 0; i < 3; i++) {
+      const tx = w * (0.2 + i * 0.3);
+      const ty = h * (0.1 + Math.random() * 0.25);
+      this.actors.push(new Target(tx, ty));
     }
   }
 
@@ -127,9 +139,35 @@ export class World {
     for (const actor of this.actors) {
       actor.update(dt, this.w, this.h, this.particles);
     }
+
+    // ── Rocket ↔ Target collisions ──────────────────────
+    const rockets = this.actors.filter(a => a instanceof Rocket && a.launched);
+    const targets = this.actors.filter(a => a instanceof Target && !a.hit);
+    for (const rocket of rockets) {
+      for (const target of targets) {
+        const dist = Math.hypot(rocket.x - target.x, rocket.y - target.y);
+        if (dist < (rocket.size + target.size) * 0.45) {
+          target.explode(this.particles, this.audio);
+          this.score += 1;
+          this.scorePop = 1;
+        }
+      }
+    }
+
     this.actors = this.actors.filter(a => a.alive);
 
     this.particles.update(dt);
+
+    // ── Target spawning ─────────────────────────────────
+    this.targetTimer -= dt;
+    if (this.targetTimer <= 0) {
+      this._spawnTarget();
+      this.targetTimer = 4 + Math.random() * 5;
+    }
+
+    // ── Score animation ─────────────────────────────────
+    this.scoreDisplay += (this.score - this.scoreDisplay) * dt * 8;
+    this.scorePop = Math.max(0, this.scorePop - dt * 3);
 
     // ── Emergent events ───────────────────────────────────
     this.emergentTimer -= dt;
@@ -171,6 +209,15 @@ export class World {
     }
   }
 
+  _spawnTarget() {
+    const margin = 80;
+    const x = margin + Math.random() * (this.w - margin * 2);
+    // Targets appear in the sky area (top 55% of screen)
+    const y = margin + Math.random() * (this.h * 0.45);
+    const t = new Target(x, y);
+    this.actors.push(t);
+  }
+
   _rainbowBurst() {
     this.particles.burst(this.w / 2, this.h * 0.4, 35, {
       colors: ['#FF0000', '#FF7F00', '#FFFF00', '#00DD00', '#0077FF', '#8B00FF'],
@@ -194,5 +241,25 @@ export class World {
 
     // Key labels — topmost
     for (const l of this.keyLabels) l.draw(ctx);
+
+    // ── Score display ───────────────────────────────────
+    if (this.score > 0) {
+      const displayScore = Math.round(this.scoreDisplay);
+      const popScale = 1 + this.scorePop * 0.4;
+      ctx.save();
+      ctx.translate(w / 2, 38);
+      ctx.scale(popScale, popScale);
+      ctx.font = 'bold 32px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillText(`💥 ${displayScore}`, 2, 2);
+      ctx.fillStyle = '#FFD700';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.lineWidth = 3;
+      ctx.strokeText(`💥 ${displayScore}`, 0, 0);
+      ctx.fillText(`💥 ${displayScore}`, 0, 0);
+      ctx.restore();
+    }
   }
 }

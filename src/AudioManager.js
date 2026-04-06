@@ -47,4 +47,18 @@ export class AudioManager {
   pop() {
     this._osc(50, 'sine', 0.15, 0.45, 350);
   }
+
+  explosion() {
+    // Satisfying hit sound: low boom + high sparkle
+    this._osc(60, 'sine', 0.4, 0.45, 250);
+    this._osc(800, 'sine', 0.2, 0.15, 1200);
+    setTimeout(() => {
+      this._osc(523, 'sine', 0.15, 0.2);
+      this._osc(659, 'sine', 0.15, 0.18);
+    }, 80);
+    setTimeout(() => {
+      this._osc(784, 'sine', 0.15, 0.15);
+      this._osc(1047, 'sine', 0.12, 0.12);
+    }, 160);
+  }
 }
