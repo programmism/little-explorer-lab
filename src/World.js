@@ -15,6 +15,7 @@ import { Companion } from './actors/Companion.js';
 import { GoalManager } from './GoalManager.js';
 import { CollectionManager } from './CollectionManager.js';
 import { SceneManager, SCENE_CONFIGS } from './SceneManager.js';
+import { MusicScene } from './MusicScene.js';
 
 export class World {
   constructor(canvas, ctx, input, audio) {
@@ -33,6 +34,7 @@ export class World {
     this.sceneLaunchPads = SCENE_CONFIGS.map(() => null);
 
     this.sceneManager = new SceneManager();
+    this.musicScene = new MusicScene();
 
     this._prevPointerIds = new Set();
 
@@ -272,6 +274,15 @@ export class World {
         continue;
       }
 
+      // ── Music scene: check xylophone bar taps first ──
+      if (this.sceneManager.currentScene.id === 'music') {
+        const barIdx = this.musicScene.hitTest(tap.x, tap.y, this.w, this.h);
+        if (barIdx >= 0) {
+          this.musicScene.play(barIdx, this.audio, this.particles);
+          continue;
+        }
+      }
+
       let hit = false;
       for (let i = this.actors.length - 1; i >= 0; i--) {
         const actor = this.actors[i];
@@ -339,6 +350,9 @@ export class World {
 
     this.keyLabels = this.keyLabels.filter(l => l.alive);
     for (const l of this.keyLabels) l.update(dt);
+
+    // ── Music scene animations ──────────────────────────
+    this.musicScene.update(dt);
 
     // ── Device tilt → actor forces ───────────────────────
     const tilt = this.input.getTilt();
@@ -561,6 +575,7 @@ export class World {
         ctx.clip();
         this.bg.draw(ctx, w, h, SCENE_CONFIGS[prevIdx].id);
         for (const actor of this.sceneActors[prevIdx]) actor.draw(ctx);
+        if (SCENE_CONFIGS[prevIdx].id === 'music') this.musicScene.draw(ctx, w, h);
         ctx.restore();
       }
 
@@ -572,11 +587,13 @@ export class World {
       ctx.clip();
       this.bg.draw(ctx, w, h, sceneId);
       for (const actor of this.sceneActors[currentIdx]) actor.draw(ctx);
+      if (sceneId === 'music') this.musicScene.draw(ctx, w, h);
       ctx.restore();
     } else {
       // Normal: draw current scene
       this.bg.draw(ctx, w, h, sceneId);
       for (const actor of this.actors) actor.draw(ctx);
+      if (sceneId === 'music') this.musicScene.draw(ctx, w, h);
     }
 
     // Particles, drawing, labels always on top
