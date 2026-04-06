@@ -44,11 +44,14 @@ export class World {
   _spawn() {
     const { w, h } = this;
 
-    const car1 = new Car(w * 0.15, h * 0.82);
+    // Right-hand traffic: rightward cars in bottom lane, leftward in top lane
+    const car1 = new Car(w * 0.15, h * 0.89);
+    car1.laneY = 0.89;
     this.actors.push(car1);
 
-    const car2 = new Car(w * 0.75, h * 0.82);
+    const car2 = new Car(w * 0.75, h * 0.78);
     car2.vx = -car2.baseSpeed;
+    car2.laneY = 0.78;
     this.actors.push(car2);
 
     this.actors.push(new Ball(w * 0.28, h * 0.4));
@@ -241,9 +244,9 @@ export class World {
         actor.x = newW * 0.5;
         actor.y = newH * 0.72;
       } else if (actor instanceof Car) {
-        // Cars stay on the road, scale x proportionally
+        // Cars stay in their lane, scale x proportionally
         actor.x *= sx;
-        actor.y = newH * 0.82;
+        actor.y = newH * (actor.laneY || 0.82);
       } else if (actor instanceof Ball) {
         // Scale position, keep within bounds
         actor.x *= sx;
