@@ -15,6 +15,7 @@ import { Companion } from './actors/Companion.js';
 import { GoalManager } from './GoalManager.js';
 import { CollectionManager } from './CollectionManager.js';
 import { SceneManager, SCENE_CONFIGS, SCENE_COLORING } from './SceneManager.js';
+import { MusicScene } from './MusicScene.js';
 import { ColoringScene } from './ColoringScene.js';
 
 export class World {
@@ -34,6 +35,7 @@ export class World {
     this.sceneLaunchPads = SCENE_CONFIGS.map(() => null);
 
     this.sceneManager = new SceneManager();
+    this.musicScene = new MusicScene();
 
     this._prevPointerIds = new Set();
 
@@ -276,6 +278,15 @@ export class World {
         continue;
       }
 
+      // ── Music scene: check xylophone bar taps first ──
+      if (this.sceneManager.currentScene.id === 'music') {
+        const barIdx = this.musicScene.hitTest(tap.x, tap.y, this.w, this.h);
+        if (barIdx >= 0) {
+          this.musicScene.play(barIdx, this.audio, this.particles);
+          continue;
+        }
+      }
+
       let hit = false;
 
       // In coloring scene, check alive shapes for taps
@@ -378,10 +389,30 @@ export class World {
     this.keyLabels = this.keyLabels.filter(l => l.alive);
     for (const l of this.keyLabels) l.update(dt);
 
+    // ── Music scene animations ──────────────────────────
+    this.musicScene.update(dt);
+
+    // ── Device tilt → actor forces ───────────────────────
+    const tilt = this.input.getTilt();
+
     // ── Update actors for ALL scenes (so they stay alive) ──
     for (let s = 0; s < this.sceneActors.length; s++) {
       for (const actor of this.sceneActors[s]) {
         actor.update(dt, this.w, this.h, this.particles);
+
+        // Apply tilt forces to specific actor types
+        if (tilt.x !== 0 || tilt.y !== 0) {
+          if (actor instanceof Ball) {
+            actor.vx += tilt.x * 200 * dt;
+            actor.vy += tilt.y * 200 * dt;
+          } else if (actor instanceof Butterfly || actor instanceof Fish) {
+            actor.targetX += tilt.x * 30 * dt;
+            actor.targetY += tilt.y * 30 * dt;
+          } else if (actor instanceof Star) {
+            actor.tiltOffsetX = tilt.x * 20;
+            actor.tiltOffsetY = tilt.y * 20;
+          }
+        }
       }
     }
 
@@ -585,6 +616,7 @@ export class World {
         ctx.clip();
         this.bg.draw(ctx, w, h, SCENE_CONFIGS[prevIdx].id);
         for (const actor of this.sceneActors[prevIdx]) actor.draw(ctx);
+        if (SCENE_CONFIGS[prevIdx].id === 'music') this.musicScene.draw(ctx, w, h);
         if (prevIdx === SCENE_COLORING) this.coloringScene.draw(ctx, w, h);
         ctx.restore();
       }
@@ -597,12 +629,14 @@ export class World {
       ctx.clip();
       this.bg.draw(ctx, w, h, sceneId);
       for (const actor of this.sceneActors[currentIdx]) actor.draw(ctx);
+      if (sceneId === 'music') this.musicScene.draw(ctx, w, h);
       if (currentIdx === SCENE_COLORING) this.coloringScene.draw(ctx, w, h);
       ctx.restore();
     } else {
       // Normal: draw current scene
       this.bg.draw(ctx, w, h, sceneId);
       for (const actor of this.actors) actor.draw(ctx);
+      if (sceneId === 'music') this.musicScene.draw(ctx, w, h);
       if (currentIdx === SCENE_COLORING) this.coloringScene.draw(ctx, w, h);
     }
 

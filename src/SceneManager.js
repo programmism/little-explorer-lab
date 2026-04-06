@@ -7,7 +7,8 @@
 export const SCENE_ROAD = 0;
 export const SCENE_SPACE = 1;
 export const SCENE_UNDERWATER = 2;
-export const SCENE_COLORING = 3;
+export const SCENE_MUSIC = 3;
+export const SCENE_COLORING = 4;
 
 export const SCENE_CONFIGS = [
   {
@@ -21,6 +22,10 @@ export const SCENE_CONFIGS = [
   {
     id: 'underwater',
     name: 'Underwater',
+  },
+  {
+    id: 'music',
+    name: 'Music',
   },
   {
     id: 'coloring',
