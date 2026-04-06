@@ -12,9 +12,14 @@ export class Target extends Actor {
     this.baseY = y;
     this.scale = 0;        // pop-in animation
     this.scaleTarget = 1;
-    this.lifetime = 15 + Math.random() * 10; // seconds before fading away
+    this.lifetime = 15 + Math.random() * 10;
     this.fadeTimer = 0;
     this.hit = false;
+
+    // Horizontal drift — some move, some stay still
+    this.driftSpeed = (Math.random() > 0.3)
+      ? (30 + Math.random() * 60) * (Math.random() > 0.5 ? 1 : -1)
+      : 0;
   }
 
   update(dt, w, h, particles) {
@@ -22,6 +27,13 @@ export class Target extends Actor {
 
     // Pop-in animation
     this.scale += (this.scaleTarget - this.scale) * dt * 5;
+
+    // Horizontal drift
+    this.x += this.driftSpeed * dt;
+
+    // Wrap horizontally
+    if (this.x < -50) this.x = w + 50;
+    if (this.x > w + 50) this.x = -50;
 
     // Gentle bobbing
     this.bobTime += dt * 1.2;

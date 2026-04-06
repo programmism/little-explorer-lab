@@ -1,77 +1,57 @@
 import { Actor } from './Actor.js';
 
 export class Rocket extends Actor {
-  constructor(x, y) {
+  constructor(x, y, angle, speed) {
     super(x, y);
-    this.size = 75;
-    this.baseX = x;
-    this.bobTime = Math.random() * Math.PI * 2;
-    this.vy = -25;         // gentle upward drift
-    this.launched = false;
-    this.launchVY = 0;
+    this.size = 50;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.angle = angle;
+    this.launched = true;
     this.trailTimer = 0;
-    // The 🚀 emoji faces upper-right (~45° from vertical).
-    // Rotate -45° so it points straight up by default.
-    this.rotationOffset = -Math.PI / 4;
+    this.lifetime = 5; // seconds before auto-remove
+    // The 🚀 emoji faces upper-right (~-45° or -π/4).
+    // To visually align with flight direction: rotate by (angle - (-π/4))
+    this.emojiOffset = Math.PI / 4;
   }
 
   update(dt, w, h, particles) {
     super.update(dt, w, h);
 
-    this.bobTime += dt * 0.7;
+    // Gravity pulls the rocket down
+    this.vy += 180 * dt;
+
+    // Update angle to match velocity direction
+    this.angle = Math.atan2(this.vy, this.vx);
+
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+
+    // Trail particles from the back of the rocket
     this.trailTimer -= dt;
-
-    if (this.launched) {
-      this.launchVY += 120 * dt; // gravity
-      this.vy = this.launchVY;
-
-      // Emit trail from the bottom of the rocket
-      if (this.trailTimer <= 0) {
-        this.trailTimer = 0.03;
-        particles.trail(this.x, this.y + this.size * 0.5, '#FF6B00', { size: 12, life: 0.55, gravity: 30 });
-        particles.trail(this.x, this.y + this.size * 0.5, '#FFE44D', { size: 7,  life: 0.35, gravity: 20 });
-      }
-
-      // Return to cruise when past mid-screen
-      if (this.y > h * 0.45 && this.launchVY > 0) {
-        this.launched = false;
-        this.launchVY = 0;
-        this.vy = -25;
-      }
+    if (this.trailTimer <= 0) {
+      this.trailTimer = 0.025;
+      const backX = this.x - Math.cos(this.angle) * this.size * 0.4;
+      const backY = this.y - Math.sin(this.angle) * this.size * 0.4;
+      particles.trail(backX, backY, '#FF6B00', { size: 11, life: 0.5, gravity: 25 });
+      particles.trail(backX, backY, '#FFE44D', { size: 6, life: 0.3, gravity: 15 });
     }
 
-    this.y += this.vy * dt;
-    this.x = this.baseX + Math.sin(this.bobTime) * 22;
-
-    // Wrap vertically
-    if (this.y < -120) this.y = h + 120;
-    if (this.y > h + 120) this.y = -120;
+    // Remove if off-screen or lifetime expired
+    this.lifetime -= dt;
+    if (this.lifetime <= 0 || this.x < -150 || this.x > w + 150 || this.y < -150 || this.y > h + 150) {
+      this.alive = false;
+    }
   }
 
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.rotate(this.rotationOffset);
+    ctx.rotate(this.angle + this.emojiOffset);
     ctx.font = `${this.size}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('🚀', 0, 0);
     ctx.restore();
-  }
-
-  onTap(x, y, particles, audio) {
-    if (this.tapCooldown > 0) return;
-    this.tapCooldown = 2.2;
-
-    this.launched = true;
-    this.launchVY = -750;
-    this.vy = -750;
-
-    particles.burst(this.x, this.y + this.size * 0.5, 18, {
-      colors: ['#FF6B00', '#FFE44D', '#FF4444', '#FFA500'],
-      minSpeed: 90, maxSpeed: 220, gravity: 160,
-    });
-
-    audio.launch();
   }
 }
