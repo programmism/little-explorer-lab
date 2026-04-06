@@ -48,6 +48,20 @@ export class AudioManager {
     this._osc(50, 'sine', 0.15, 0.45, 350);
   }
 
+  carCrash() {
+    // Heavy metallic crash: low boom + mid crunch + high shatter
+    this._osc(40, 'sawtooth', 0.6, 0.5, 180);
+    this._osc(70, 'square', 0.4, 0.35, 300);
+    this._osc(200, 'sawtooth', 0.3, 0.2, 800);
+    setTimeout(() => {
+      this._osc(50, 'sine', 0.5, 0.3, 150);
+      this._osc(120, 'square', 0.25, 0.2, 400);
+    }, 100);
+    setTimeout(() => {
+      this._osc(30, 'sine', 0.4, 0.25);
+    }, 250);
+  }
+
   explosion() {
     // Satisfying hit sound: low boom + high sparkle
     this._osc(60, 'sine', 0.4, 0.45, 250);

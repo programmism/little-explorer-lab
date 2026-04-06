@@ -47,11 +47,13 @@ export class World {
     // Right-hand traffic: rightward cars in bottom lane, leftward in top lane
     const car1 = new Car(w * 0.15, h * 0.89);
     car1.laneY = 0.89;
+    car1.currentLaneY = 0.89;
     this.actors.push(car1);
 
     const car2 = new Car(w * 0.75, h * 0.78);
     car2.vx = -car2.baseSpeed;
     car2.laneY = 0.78;
+    car2.currentLaneY = 0.78;
     this.actors.push(car2);
 
     this.actors.push(new Ball(w * 0.28, h * 0.4));
@@ -207,6 +209,20 @@ export class World {
           rocket.alive = false; // rocket consumed on hit
           this.score += 1;
           this.scorePop = 1;
+        }
+      }
+    }
+
+    // ── Car ↔ Car collisions ──────────────────────────
+    const cars = this.actors.filter(a => a instanceof Car && !a.crashed);
+    for (let i = 0; i < cars.length; i++) {
+      for (let j = i + 1; j < cars.length; j++) {
+        const a = cars[i], b = cars[j];
+        // Only collide if one is swerving (on wrong lane)
+        if (!a.swerving && !b.swerving) continue;
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (dist < (a.size + b.size) * 0.45) {
+          a.triggerCrash(b, this.particles, this.audio);
         }
       }
     }
