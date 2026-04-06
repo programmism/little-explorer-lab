@@ -10,6 +10,9 @@ export class Rocket extends Actor {
     this.launched = false;
     this.launchVY = 0;
     this.trailTimer = 0;
+    // The 🚀 emoji faces upper-right (~45° from vertical).
+    // Rotate -45° so it points straight up by default.
+    this.rotationOffset = -Math.PI / 4;
   }
 
   update(dt, w, h, particles) {
@@ -22,7 +25,7 @@ export class Rocket extends Actor {
       this.launchVY += 120 * dt; // gravity
       this.vy = this.launchVY;
 
-      // Emit trail
+      // Emit trail from the bottom of the rocket
       if (this.trailTimer <= 0) {
         this.trailTimer = 0.03;
         particles.trail(this.x, this.y + this.size * 0.5, '#FF6B00', { size: 12, life: 0.55, gravity: 30 });
@@ -48,6 +51,7 @@ export class Rocket extends Actor {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotationOffset);
     ctx.font = `${this.size}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
