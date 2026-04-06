@@ -110,24 +110,31 @@ npm run build
 
 ```
 src/
-  main.js            # Entry point, fullscreen request
-  GameLoop.js        # requestAnimationFrame loop with dt cap
-  InputManager.js    # Mouse, touch, keyboard capture + exit gesture
-  AudioManager.js    # Web Audio API synthesized sounds
-  ParticleSystem.js  # Burst and trail particle effects
-  DrawingLayer.js    # Freehand rainbow drawing with fade
-  KeyLabel.js        # Floating letter animation on key press
-  Background.js      # Animated day/night sky, clouds, stars, road
-  World.js           # Scene manager, emergent events, input routing
+  main.js              # Entry point, fullscreen request
+  GameLoop.js          # requestAnimationFrame loop with dt cap
+  InputManager.js      # Mouse, touch, keyboard capture + tap-vs-drag fix + exit gesture
+  AudioManager.js      # Web Audio API synthesized sounds + speech synthesis
+  MusicManager.js      # Ambient background music with day/night crossfade
+  GoalManager.js       # Mini-goals with star progress bar + fanfare celebration
+  CollectionManager.js # Collectible album with persistence (localStorage)
+  SceneManager.js      # Themed rooms (Road, Space, Underwater) + swipe navigation
+  ParticleSystem.js    # Burst and trail particle effects
+  DrawingLayer.js      # Freehand rainbow drawing with fade
+  KeyLabel.js          # Floating letter animation on key press
+  Background.js        # Animated day/night sky, clouds, stars, road
+  World.js             # Scene manager, emergent events, input routing
   actors/
-    Actor.js         # Base class
-    Car.js           # Physics + color flash + honk + swerve + crash
-    Ball.js          # Gravity + squish + color change
-    Rocket.js        # Launch trajectory + particle trail
-    Star.js          # Float + sparkle burst
-    Butterfly.js     # Wander AI + scatter on tap
-    Target.js        # Score targets — bob, drift, explode on hit
-    LaunchPad.js     # Rocket aiming + reload state
+    Actor.js           # Base class
+    Car.js             # Physics + color flash + honk + swerve + crash
+    Ball.js            # Gravity + squish + color change
+    Rocket.js          # Launch trajectory + particle trail
+    Star.js            # Float + sparkle burst
+    Butterfly.js       # Wander AI + scatter on tap
+    Target.js          # Score targets — bob, drift, explode on hit
+    LaunchPad.js       # Rocket aiming + reload state
+    Companion.js       # Owl companion — celebrates, sleeps, waves, reacts to taps
+    Fish.js            # Underwater fish — swim, scatter on tap
+    Astronaut.js       # Space actors — float and spin in zero gravity
 ```
 
 ---
