@@ -370,12 +370,46 @@ export class Background {
     ctx.restore();
   }
 
+  /** Draw the music scene — dark stage with subtle spotlight. */
+  drawMusic(ctx, w, h) {
+    // Dark stage gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#1a0a2e');
+    grad.addColorStop(0.4, '#16213e');
+    grad.addColorStop(1, '#0a0a1a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Soft spotlight from above
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    const spot = ctx.createRadialGradient(w * 0.5, 0, 0, w * 0.5, h * 0.3, w * 0.5);
+    spot.addColorStop(0, '#ffffff');
+    spot.addColorStop(1, 'transparent');
+    ctx.fillStyle = spot;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+
+    // Faint twinkling stars for ambiance
+    ctx.fillStyle = '#ffffff';
+    for (const s of this.spaceStars) {
+      if (s.y > 0.45) continue; // only upper portion
+      ctx.globalAlpha = 0.15 + 0.2 * Math.abs(Math.sin(s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x * w, s.y * h, s.r * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /** Main draw dispatcher based on scene ID. */
   draw(ctx, w, h, sceneId) {
     if (sceneId === 'space') {
       this.drawSpace(ctx, w, h);
     } else if (sceneId === 'underwater') {
       this.drawUnderwater(ctx, w, h);
+    } else if (sceneId === 'music') {
+      this.drawMusic(ctx, w, h);
     } else {
       this.drawRoad(ctx, w, h);
     }

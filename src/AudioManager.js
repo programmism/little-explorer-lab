@@ -139,6 +139,46 @@ export class AudioManager {
     }, 160);
   }
 
+  /**
+   * Play a marimba-like note at the given frequency.
+   * Uses a triangle wave with a quick ADSR envelope for a warm, mallet tone.
+   */
+  playNote(freq) {
+    if (!this._ctx) return;
+    const ctx = this._ctx;
+    const now = ctx.currentTime;
+
+    // Primary triangle oscillator (warm mallet tone)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(freq, now);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+
+    // ADSR: fast attack, short decay, low sustain, medium release
+    gain1.gain.setValueAtTime(0, now);
+    gain1.gain.linearRampToValueAtTime(0.45, now + 0.01);   // attack
+    gain1.gain.exponentialRampToValueAtTime(0.15, now + 0.15); // decay
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.8); // release
+    osc1.start(now);
+    osc1.stop(now + 0.8);
+
+    // Harmonic layer (sine at 2x frequency) for brightness
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 2, now);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+
+    gain2.gain.setValueAtTime(0, now);
+    gain2.gain.linearRampToValueAtTime(0.12, now + 0.005);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc2.start(now);
+    osc2.stop(now + 0.3);
+  }
+
   fanfare() {
     // Triumphant ascending fanfare for goal completion
     const notes = [
