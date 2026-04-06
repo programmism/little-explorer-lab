@@ -1,6 +1,6 @@
 # 🧪 Little Explorer Lab
 
-> **A safe, fullscreen interactive playground for curious toddlers aged 2–4.**
+> **A safe, fullscreen interactive playground for curious kids aged 2–5.**
 
 [![Live Demo](https://img.shields.io/badge/▶%20Live%20Demo-GitHub%20Pages-brightgreen?style=for-the-badge)](https://programmism.github.io/little-explorer-lab/)
 [![Deploy](https://github.com/programmism/little-explorer-lab/actions/workflows/deploy.yml/badge.svg)](https://github.com/programmism/little-explorer-lab/actions/workflows/deploy.yml)
@@ -14,8 +14,8 @@
 
 ## What is it?
 
-A toddler-safe fullscreen world where **every touch causes a friendly reaction**.
-No goals. No scores. No text. Just cause and effect.
+A kid-safe fullscreen world where **every touch causes a friendly reaction**.
+For toddlers (2–3): pure cause and effect. For older kids (4–5): mini-goals, collectibles, and progression.
 
 > "I touched something — and the world responded."
 
@@ -41,6 +41,28 @@ Works on phones, tablets, laptops. Fully offline. Zero ads. Zero links.
 | 🔇 **Synthesized audio** | All sounds generated via Web Audio API — no audio files needed |
 | 🔒 **Input capture** | Keyboard shortcuts, context menus, and browser gestures disabled |
 | 🚪 **Safe exit** | Hold top-right corner for 3 seconds to exit fullscreen |
+| 🎯 **Launch pad** | Aim and launch rockets at moving targets for points |
+| 💥 **Car crashes** | Cars can swerve into oncoming lane and crash with explosion effects |
+
+---
+
+## Roadmap (4–5 year olds)
+
+Planned improvements to better engage children aged 4–5:
+
+| Priority | Feature | Issue |
+|----------|---------|-------|
+| 🔴 High | Mini-goals with celebrations | [#6](https://github.com/programmism/little-explorer-lab/issues/6) |
+| 🔴 High | Letter pronunciation on keypress | [#7](https://github.com/programmism/little-explorer-lab/issues/7) |
+| 🔴 High | Ambient background music (day/night) | [#8](https://github.com/programmism/little-explorer-lab/issues/8) |
+| 🔴 High | Fix tap vs drawing input conflict | [#9](https://github.com/programmism/little-explorer-lab/issues/9) |
+| 🟡 Medium | Themed rooms with swipe navigation | [#10](https://github.com/programmism/little-explorer-lab/issues/10) |
+| 🟡 Medium | Companion character | [#11](https://github.com/programmism/little-explorer-lab/issues/11) |
+| 🟡 Medium | Collectible album for targets | [#12](https://github.com/programmism/little-explorer-lab/issues/12) |
+| 🟡 Medium | Visual progress bar instead of score | [#13](https://github.com/programmism/little-explorer-lab/issues/13) |
+| 🟢 Low | Coloring mode with animated results | [#14](https://github.com/programmism/little-explorer-lab/issues/14) |
+| 🟢 Low | Musical instrument mode | [#15](https://github.com/programmism/little-explorer-lab/issues/15) |
+| 🟢 Low | Device tilt/accelerometer interactions | [#16](https://github.com/programmism/little-explorer-lab/issues/16) |
 
 ---
 
@@ -90,11 +112,13 @@ src/
   World.js           # Scene manager, emergent events, input routing
   actors/
     Actor.js         # Base class
-    Car.js           # Physics + color flash + honk
+    Car.js           # Physics + color flash + honk + swerve + crash
     Ball.js          # Gravity + squish + color change
     Rocket.js        # Launch trajectory + particle trail
     Star.js          # Float + sparkle burst
     Butterfly.js     # Wander AI + scatter on tap
+    Target.js        # Score targets — bob, drift, explode on hit
+    LaunchPad.js     # Rocket aiming + reload state
 ```
 
 ---
