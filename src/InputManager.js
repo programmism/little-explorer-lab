@@ -11,6 +11,10 @@ export class InputManager {
     this.mouseDown = false;
     this.mousePos = null;
 
+    // Swipe event queue for SceneManager
+    this._swipeEvents = [];
+    this._mouseDownPos = null;
+
     // Per-pointer tracking for tap vs drag classification
     this._pointerStarts = new Map(); // id → { x, y, time }
     this._drawingPointers = new Set(); // pointers confirmed as drawing
@@ -32,6 +36,8 @@ export class InputManager {
       const pos = this._mousePos(e);
       this.mouseDown = true;
       this.mousePos = pos;
+      this._mouseDownPos = { ...pos };
+      this._swipeEvents.push({ type: 'down', ...pos });
       this._pointerStarts.set('mouse', { x: pos.x, y: pos.y, time: Date.now() });
       this._onDown(pos);
     });
@@ -39,21 +45,29 @@ export class InputManager {
       e.preventDefault();
       const pos = this._mousePos(e);
       this.mousePos = pos;
+      if (this.mouseDown) {
+        this._swipeEvents.push({ type: 'move', ...pos });
+      }
       this._checkDragThreshold('mouse', pos);
     });
     c.addEventListener('mouseup', e => {
       e.preventDefault();
       const pos = this._mousePos(e);
       this.mouseDown = false;
+      this._swipeEvents.push({ type: 'up', ...pos });
       this._onUp('mouse', pos);
     });
 
-    // Touch
+    // Touch — track all touches; first touch also feeds swipe detection
     c.addEventListener('touchstart', e => {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const pos = this._touchPos(t);
         this.activeTouches.set(t.identifier, { ...pos, startTime: Date.now() });
+        // Use first touch for swipe detection
+        if (e.touches.length === 1) {
+          this._swipeEvents.push({ type: 'down', ...pos });
+        }
         this._pointerStarts.set(t.identifier, { x: pos.x, y: pos.y, time: Date.now() });
         this._onDown(pos);
       }
@@ -66,6 +80,10 @@ export class InputManager {
           const existing = this.activeTouches.get(t.identifier);
           const pos = this._touchPos(t);
           this.activeTouches.set(t.identifier, { ...pos, startTime: existing.startTime });
+          // Track first touch for swipe
+          if (t.identifier === e.touches[0]?.identifier) {
+            this._swipeEvents.push({ type: 'move', ...pos });
+          }
           this._checkDragThreshold(t.identifier, pos);
         }
       }
@@ -75,6 +93,7 @@ export class InputManager {
       e.preventDefault();
       for (const t of e.changedTouches) {
         const pos = this._touchPos(t);
+        this._swipeEvents.push({ type: 'up', ...pos });
         this.activeTouches.delete(t.identifier);
         this._onUp(t.identifier, pos);
       }
@@ -188,6 +207,12 @@ export class InputManager {
       this._exitTimer = null;
     }
     this._exitOverlay.classList.remove('visible');
+  }
+
+  consumeSwipeEvents() {
+    const events = this._swipeEvents;
+    this._swipeEvents = [];
+    return events;
   }
 
   consumeTaps() {

@@ -48,6 +48,40 @@ export class Background {
       phase: Math.random() * Math.PI * 2,
       speed: 1.5 + Math.random() * 3,
     }));
+
+    // Space scene: many dense stars
+    this.spaceStars = Array.from({ length: 200 }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: 0.5 + Math.random() * 3,
+      phase: Math.random() * Math.PI * 2,
+      speed: 1 + Math.random() * 4,
+    }));
+
+    // Space scene: planets
+    this.planets = [
+      { x: 0.15, y: 0.25, emoji: '🪐', size: 70 },
+      { x: 0.82, y: 0.18, emoji: '🌍', size: 55 },
+      { x: 0.55, y: 0.08, emoji: '🌙', size: 45 },
+    ];
+
+    // Underwater scene: bubbles
+    this.bubbles = Array.from({ length: 30 }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: 3 + Math.random() * 10,
+      speed: 0.02 + Math.random() * 0.04,
+      wobblePhase: Math.random() * Math.PI * 2,
+      wobbleSpeed: 1.5 + Math.random() * 2,
+    }));
+
+    // Underwater scene: seaweed positions
+    this.seaweeds = Array.from({ length: 8 }, () => ({
+      x: 0.05 + Math.random() * 0.9,
+      height: 0.08 + Math.random() * 0.12,
+      phase: Math.random() * Math.PI * 2,
+      speed: 1 + Math.random() * 1.5,
+    }));
   }
 
   update(dt) {
@@ -58,6 +92,20 @@ export class Background {
     }
     for (const s of this.stars) {
       s.phase += s.speed * dt;
+    }
+    for (const s of this.spaceStars) {
+      s.phase += s.speed * dt;
+    }
+    for (const b of this.bubbles) {
+      b.y -= b.speed * dt;
+      b.wobblePhase += b.wobbleSpeed * dt;
+      if (b.y < -0.05) {
+        b.y = 1.05;
+        b.x = Math.random();
+      }
+    }
+    for (const sw of this.seaweeds) {
+      sw.phase += sw.speed * dt;
     }
   }
 
@@ -143,7 +191,8 @@ export class Background {
     ctx.setLineDash([]);
   }
 
-  draw(ctx, w, h) {
+  /** Draw the road scene (original). */
+  drawRoad(ctx, w, h) {
     const horizonY = h * 0.70;
     const skyC = sampleStops(SKY_STOPS, this.time);
     const gndC = sampleStops(GROUND_STOPS, this.time);
@@ -191,5 +240,144 @@ export class Background {
 
     // Road
     this._drawRoad(ctx, w, h, horizonY);
+  }
+
+  /** Draw the space scene. */
+  drawSpace(ctx, w, h) {
+    // Deep space background gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#0a0020');
+    grad.addColorStop(0.5, '#0d0040');
+    grad.addColorStop(1, '#150060');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Dense starfield
+    ctx.fillStyle = '#ffffff';
+    for (const s of this.spaceStars) {
+      ctx.globalAlpha = 0.3 + 0.7 * Math.abs(Math.sin(s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Nebula glow patches
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    const glow1 = ctx.createRadialGradient(w * 0.3, h * 0.4, 0, w * 0.3, h * 0.4, w * 0.3);
+    glow1.addColorStop(0, '#8B00FF');
+    glow1.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow1;
+    ctx.fillRect(0, 0, w, h);
+
+    const glow2 = ctx.createRadialGradient(w * 0.7, h * 0.6, 0, w * 0.7, h * 0.6, w * 0.25);
+    glow2.addColorStop(0, '#00BFFF');
+    glow2.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow2;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+
+    // Planets (background decoration)
+    for (const p of this.planets) {
+      ctx.font = `${p.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.emoji, p.x * w, p.y * h);
+    }
+  }
+
+  /** Draw the underwater scene. */
+  drawUnderwater(ctx, w, h) {
+    // Blue-green water gradient
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#006994');
+    grad.addColorStop(0.3, '#005577');
+    grad.addColorStop(0.7, '#003B4D');
+    grad.addColorStop(1, '#002233');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Light rays from surface
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    for (let i = 0; i < 5; i++) {
+      const x = w * (0.1 + i * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(x - 20, 0);
+      ctx.lineTo(x + 30, 0);
+      ctx.lineTo(x + 80 + i * 15, h);
+      ctx.lineTo(x - 60 + i * 10, h);
+      ctx.closePath();
+      ctx.fillStyle = '#4FC3F7';
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Seaweed at bottom
+    ctx.save();
+    for (const sw of this.seaweeds) {
+      const baseX = sw.x * w;
+      const baseY = h;
+      const topY = h - sw.height * h;
+      const sway = Math.sin(sw.phase) * 15;
+
+      ctx.strokeStyle = '#2E7D32';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(baseX, baseY);
+      ctx.quadraticCurveTo(baseX + sway, (baseY + topY) / 2, baseX + sway * 1.5, topY);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#388E3C';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(baseX + 8, baseY);
+      ctx.quadraticCurveTo(baseX + 8 - sway * 0.8, (baseY + topY + 20) / 2, baseX + 8 - sway, topY + 20);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Sandy bottom
+    const sandGrad = ctx.createLinearGradient(0, h - 40, 0, h);
+    sandGrad.addColorStop(0, 'rgba(194, 178, 128, 0)');
+    sandGrad.addColorStop(0.5, 'rgba(194, 178, 128, 0.3)');
+    sandGrad.addColorStop(1, 'rgba(194, 178, 128, 0.5)');
+    ctx.fillStyle = sandGrad;
+    ctx.fillRect(0, h - 40, w, 40);
+
+    // Bubbles
+    ctx.save();
+    for (const b of this.bubbles) {
+      const bx = b.x * w + Math.sin(b.wobblePhase) * 8;
+      const by = b.y * h;
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = '#B3E5FC';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(bx, by, b.r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Shine highlight
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(bx - b.r * 0.3, by - b.r * 0.3, b.r * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  /** Main draw dispatcher based on scene ID. */
+  draw(ctx, w, h, sceneId) {
+    if (sceneId === 'space') {
+      this.drawSpace(ctx, w, h);
+    } else if (sceneId === 'underwater') {
+      this.drawUnderwater(ctx, w, h);
+    } else {
+      this.drawRoad(ctx, w, h);
+    }
   }
 }
