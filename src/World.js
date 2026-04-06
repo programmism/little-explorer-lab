@@ -32,6 +32,8 @@ export class World {
     this.scorePop = 0;
 
     this.launchPad = null;
+    this._prevW = this.w;
+    this._prevH = this.h;
 
     this._spawn();
   }
@@ -100,6 +102,13 @@ export class World {
   }
 
   update(dt) {
+    // ── Handle screen resize / rotation ─────────────────
+    if (this.w !== this._prevW || this.h !== this._prevH) {
+      this._onResize(this._prevW, this._prevH, this.w, this.h);
+      this._prevW = this.w;
+      this._prevH = this.h;
+    }
+
     this.bg.update(dt);
 
     // ── Pointer tracking for aim line ──────────────────
@@ -219,6 +228,54 @@ export class World {
     if (this.emergentTimer <= 0) {
       this._emergent();
       this.emergentTimer = 8 + Math.random() * 14;
+    }
+  }
+
+  _onResize(oldW, oldH, newW, newH) {
+    const sx = newW / oldW;
+    const sy = newH / oldH;
+
+    for (const actor of this.actors) {
+      if (actor instanceof LaunchPad) {
+        // Fixed position: always bottom center
+        actor.x = newW * 0.5;
+        actor.y = newH * 0.72;
+      } else if (actor instanceof Car) {
+        // Cars stay on the road, scale x proportionally
+        actor.x *= sx;
+        actor.y = newH * 0.82;
+      } else if (actor instanceof Ball) {
+        // Scale position, keep within bounds
+        actor.x *= sx;
+        actor.y *= sy;
+      } else if (actor instanceof Star) {
+        // Scale base positions (actual position derived from base + bob)
+        actor.baseX *= sx;
+        actor.baseY *= sy;
+        actor.x = actor.baseX;
+        actor.y = actor.baseY;
+      } else if (actor instanceof Target) {
+        // Scale positions
+        actor.x *= sx;
+        actor.baseY *= sy;
+        actor.y = actor.baseY;
+      } else if (actor instanceof Butterfly) {
+        // Scale position and wander target
+        actor.x *= sx;
+        actor.y *= sy;
+        actor.targetX *= sx;
+        actor.targetY *= sy;
+      } else if (actor instanceof Rocket) {
+        // Projectiles in flight — scale position
+        actor.x *= sx;
+        actor.y *= sy;
+      }
+    }
+
+    // Scale key label positions
+    for (const l of this.keyLabels) {
+      l.x *= sx;
+      l.y *= sy;
     }
   }
 
