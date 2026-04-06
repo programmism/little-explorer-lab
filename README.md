@@ -52,12 +52,15 @@ Works on phones, tablets, laptops. Fully offline. Zero ads. Zero links.
 | 🧑‍🚀 **Astronaut** | Space scene actors — float and spin in zero gravity |
 | 🔊 **Letter speech** | Letters spoken aloud via Speech Synthesis API on key press |
 | 🎺 **Fanfare** | Triumphant ascending melody when a goal is completed |
+| 🎹 **Xylophone** | Musical scene with rainbow bars — tap to play pentatonic notes |
+| 🖍️ **Coloring** | Color outlines of animals/vehicles — they come alive when filled |
+| 📱 **Device tilt** | Balls roll, butterflies drift, stars parallax with device orientation |
 
 ---
 
 ## Roadmap (4–5 year olds)
 
-Planned improvements to better engage children aged 4–5:
+All planned UX improvements for children aged 4–5 have been implemented:
 
 | Priority | Feature | Issue |
 |----------|---------|-------|
@@ -69,9 +72,9 @@ Planned improvements to better engage children aged 4–5:
 | ✅ Done | Companion character | [#11](https://github.com/programmism/little-explorer-lab/issues/11) |
 | ✅ Done | Collectible album for targets | [#12](https://github.com/programmism/little-explorer-lab/issues/12) |
 | ✅ Done | Visual progress bar instead of score | [#13](https://github.com/programmism/little-explorer-lab/issues/13) |
-| 🟢 Low | Coloring mode with animated results | [#14](https://github.com/programmism/little-explorer-lab/issues/14) |
-| 🟢 Low | Musical instrument mode | [#15](https://github.com/programmism/little-explorer-lab/issues/15) |
-| 🟢 Low | Device tilt/accelerometer interactions | [#16](https://github.com/programmism/little-explorer-lab/issues/16) |
+| ✅ Done | Coloring mode with animated results | [#14](https://github.com/programmism/little-explorer-lab/issues/14) |
+| ✅ Done | Musical instrument mode | [#15](https://github.com/programmism/little-explorer-lab/issues/15) |
+| ✅ Done | Device tilt/accelerometer interactions | [#16](https://github.com/programmism/little-explorer-lab/issues/16) |
 
 ---
 
@@ -117,7 +120,9 @@ src/
   MusicManager.js      # Ambient background music with day/night crossfade
   GoalManager.js       # Mini-goals with star progress bar + fanfare celebration
   CollectionManager.js # Collectible album with persistence (localStorage)
-  SceneManager.js      # Themed rooms (Road, Space, Underwater) + swipe navigation
+  SceneManager.js      # Themed rooms (Road, Space, Underwater, Music, Coloring) + swipe navigation
+  MusicScene.js        # Xylophone instrument with pentatonic scale
+  ColoringScene.js     # Coloring outlines that come alive when filled
   ParticleSystem.js    # Burst and trail particle effects
   DrawingLayer.js      # Freehand rainbow drawing with fade
   KeyLabel.js          # Floating letter animation on key press
