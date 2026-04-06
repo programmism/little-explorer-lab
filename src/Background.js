@@ -402,6 +402,27 @@ export class Background {
     ctx.globalAlpha = 1;
   }
 
+  /** Draw the coloring scene background. */
+  drawColoring(ctx, w, h) {
+    // Soft pastel gradient — feels like a colouring book / art table
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, '#2D1B69');
+    grad.addColorStop(0.4, '#1B1042');
+    grad.addColorStop(1, '#0E0A26');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle sparkle dots (reuse space stars with low alpha)
+    ctx.fillStyle = '#ffffff';
+    for (const s of this.spaceStars) {
+      ctx.globalAlpha = 0.08 + 0.12 * Math.abs(Math.sin(s.phase));
+      ctx.beginPath();
+      ctx.arc(s.x * w, s.y * h, s.r * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   /** Main draw dispatcher based on scene ID. */
   draw(ctx, w, h, sceneId) {
     if (sceneId === 'space') {
@@ -410,6 +431,8 @@ export class Background {
       this.drawUnderwater(ctx, w, h);
     } else if (sceneId === 'music') {
       this.drawMusic(ctx, w, h);
+    } else if (sceneId === 'coloring') {
+      this.drawColoring(ctx, w, h);
     } else {
       this.drawRoad(ctx, w, h);
     }

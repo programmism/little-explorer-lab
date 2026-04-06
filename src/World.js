@@ -14,8 +14,9 @@ import { Astronaut } from './actors/Astronaut.js';
 import { Companion } from './actors/Companion.js';
 import { GoalManager } from './GoalManager.js';
 import { CollectionManager } from './CollectionManager.js';
-import { SceneManager, SCENE_CONFIGS } from './SceneManager.js';
+import { SceneManager, SCENE_CONFIGS, SCENE_COLORING } from './SceneManager.js';
 import { MusicScene } from './MusicScene.js';
+import { ColoringScene } from './ColoringScene.js';
 
 export class World {
   constructor(canvas, ctx, input, audio) {
@@ -46,6 +47,9 @@ export class World {
     this.companion = null;
     this._prevW = this.w;
     this._prevH = this.h;
+
+    // Coloring scene (4th scene)
+    this.coloringScene = new ColoringScene();
 
     // Spawn actors for all scenes
     this._spawnRoad();
@@ -284,26 +288,46 @@ export class World {
       }
 
       let hit = false;
-      for (let i = this.actors.length - 1; i >= 0; i--) {
-        const actor = this.actors[i];
-        if (actor instanceof LaunchPad || actor instanceof Rocket) continue;
-        if (actor.hitTest(tap.x, tap.y)) {
-          actor.onTap(tap.x, tap.y, this.particles, this.audio);
-          hit = true;
-          break;
-        }
-      }
 
-      if (!hit) {
-        this._launchRocket(tap.x, tap.y);
-        this.particles.burst(tap.x, tap.y, 8, {
-          colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#FF9FF3', '#A8E6CF'],
-          minSpeed: 25, maxSpeed: 80, gravity: 120,
-        });
+      // In coloring scene, check alive shapes for taps
+      if (this.sceneManager.currentIndex === SCENE_COLORING) {
+        for (let i = this.coloringScene.aliveShapes.length - 1; i >= 0; i--) {
+          const shape = this.coloringScene.aliveShapes[i];
+          if (shape.hitTest(tap.x, tap.y)) {
+            shape.onTap(tap.x, tap.y, this.particles, this.audio);
+            hit = true;
+            break;
+          }
+        }
+        if (!hit) {
+          this.particles.burst(tap.x, tap.y, 8, {
+            colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#FF9FF3', '#A8E6CF'],
+            minSpeed: 25, maxSpeed: 80, gravity: 120,
+          });
+        }
+      } else {
+        for (let i = this.actors.length - 1; i >= 0; i--) {
+          const actor = this.actors[i];
+          if (actor instanceof LaunchPad || actor instanceof Rocket) continue;
+          if (actor.hitTest(tap.x, tap.y)) {
+            actor.onTap(tap.x, tap.y, this.particles, this.audio);
+            hit = true;
+            break;
+          }
+        }
+
+        if (!hit) {
+          this._launchRocket(tap.x, tap.y);
+          this.particles.burst(tap.x, tap.y, 8, {
+            colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#FF9FF3', '#A8E6CF'],
+            minSpeed: 25, maxSpeed: 80, gravity: 120,
+          });
+        }
       }
     }
 
     // ── Drawing (only for pointers that exceeded the drag threshold) ──
+    const isColoring = this.sceneManager.currentIndex === SCENE_COLORING;
     const currentIds = new Set(pointers.map(p => p.id));
     const drawingIds = new Set();
 
@@ -312,13 +336,27 @@ export class World {
 
       drawingIds.add(p.id);
       if (!this._prevPointerIds.has(p.id)) {
-        this.drawing.startStroke(p.id, p.x, p.y);
+        if (isColoring) {
+          this.coloringScene.startStroke(p.id, p.x, p.y);
+        } else {
+          this.drawing.startStroke(p.id, p.x, p.y);
+        }
       } else {
-        this.drawing.addPoint(p.id, p.x, p.y);
+        if (isColoring) {
+          this.coloringScene.addPoint(p.id, p.x, p.y);
+        } else {
+          this.drawing.addPoint(p.id, p.x, p.y);
+        }
       }
     }
     for (const id of this._prevPointerIds) {
-      if (!drawingIds.has(id)) this.drawing.endStroke(id);
+      if (!drawingIds.has(id)) {
+        if (isColoring) {
+          this.coloringScene.endStroke(id);
+        } else {
+          this.drawing.endStroke(id);
+        }
+      }
     }
     this._prevPointerIds = drawingIds;
 
@@ -432,6 +470,9 @@ export class World {
 
     // ── Collection album ──────────────────────────────
     this.album.update(dt);
+
+    // ── Coloring scene ───────────────────────────────
+    this.coloringScene.update(dt, this.w, this.h, this.particles, this.audio);
 
     // ── Emergent events ───────────────────────────────────
     this.emergentTimer -= dt;
@@ -576,6 +617,7 @@ export class World {
         this.bg.draw(ctx, w, h, SCENE_CONFIGS[prevIdx].id);
         for (const actor of this.sceneActors[prevIdx]) actor.draw(ctx);
         if (SCENE_CONFIGS[prevIdx].id === 'music') this.musicScene.draw(ctx, w, h);
+        if (prevIdx === SCENE_COLORING) this.coloringScene.draw(ctx, w, h);
         ctx.restore();
       }
 
@@ -588,12 +630,14 @@ export class World {
       this.bg.draw(ctx, w, h, sceneId);
       for (const actor of this.sceneActors[currentIdx]) actor.draw(ctx);
       if (sceneId === 'music') this.musicScene.draw(ctx, w, h);
+      if (currentIdx === SCENE_COLORING) this.coloringScene.draw(ctx, w, h);
       ctx.restore();
     } else {
       // Normal: draw current scene
       this.bg.draw(ctx, w, h, sceneId);
       for (const actor of this.actors) actor.draw(ctx);
       if (sceneId === 'music') this.musicScene.draw(ctx, w, h);
+      if (currentIdx === SCENE_COLORING) this.coloringScene.draw(ctx, w, h);
     }
 
     // Particles, drawing, labels always on top
