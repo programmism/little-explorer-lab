@@ -8,6 +8,7 @@ import { Rocket } from './actors/Rocket.js';
 import { Star } from './actors/Star.js';
 import { Butterfly } from './actors/Butterfly.js';
 import { Target } from './actors/Target.js';
+import { LaunchPad } from './actors/LaunchPad.js';
 
 export class World {
   constructor(canvas, ctx, input, audio) {
@@ -25,10 +26,12 @@ export class World {
     this._prevPointerIds = new Set();
 
     this.emergentTimer = 6 + Math.random() * 10;
-    this.targetTimer = 3;   // spawn first target after 3 seconds
+    this.targetTimer = 3;
     this.score = 0;
-    this.scoreDisplay = 0;  // animated score display
-    this.scorePop = 0;      // scale pop effect on score change
+    this.scoreDisplay = 0;
+    this.scorePop = 0;
+
+    this.launchPad = null;
 
     this._spawn();
   }
@@ -49,7 +52,9 @@ export class World {
     this.actors.push(new Ball(w * 0.28, h * 0.4));
     this.actors.push(new Ball(w * 0.72, h * 0.32));
 
-    this.actors.push(new Rocket(w * 0.5, h * 0.28));
+    // Launch pad at bottom center, above the road
+    this.launchPad = new LaunchPad(w * 0.5, h * 0.72);
+    this.actors.push(this.launchPad);
 
     for (let i = 0; i < 3; i++) {
       this.actors.push(new Star(w * (0.18 + i * 0.32), h * (0.12 + Math.random() * 0.2)));
@@ -61,16 +66,50 @@ export class World {
       this.actors.push(b);
     }
 
-    // Initial targets to aim at
+    // Initial targets
     for (let i = 0; i < 3; i++) {
-      const tx = w * (0.2 + i * 0.3);
-      const ty = h * (0.1 + Math.random() * 0.25);
+      const tx = w * (0.15 + i * 0.35);
+      const ty = h * (0.08 + Math.random() * 0.25);
       this.actors.push(new Target(tx, ty));
     }
   }
 
+  _launchRocket(tapX, tapY) {
+    const pad = this.launchPad;
+    if (!pad || !pad.ready) return;
+
+    const startX = pad.x;
+    const startY = pad.y - 25; // launch from top of pad
+    const angle = Math.atan2(tapY - startY, tapX - startX);
+
+    // Don't launch downward — only allow angles pointing upward
+    if (angle >= 0) return;
+
+    const speed = 650;
+    const rocket = new Rocket(startX, startY, angle, speed);
+    this.actors.push(rocket);
+    pad.launch();
+
+    // Launch burst
+    this.particles.burst(startX, startY, 14, {
+      colors: ['#FF6B00', '#FFE44D', '#FF4444', '#FFA500'],
+      minSpeed: 60, maxSpeed: 180, gravity: 160,
+    });
+
+    this.audio.launch();
+  }
+
   update(dt) {
     this.bg.update(dt);
+
+    // ── Pointer tracking for aim line ──────────────────
+    const pointers = this.input.getActivePointers();
+    if (pointers.length > 0 && this.launchPad) {
+      // Use the first pointer for aiming
+      this.launchPad.setAim(pointers[0].x, pointers[0].y);
+    } else if (this.launchPad) {
+      this.launchPad.clearAim();
+    }
 
     // ── Taps ─────────────────────────────────────────────
     const taps = this.input.consumeTaps();
@@ -79,22 +118,28 @@ export class World {
     for (const tap of taps) {
       let hit = false;
       for (let i = this.actors.length - 1; i >= 0; i--) {
-        if (this.actors[i].hitTest(tap.x, tap.y)) {
-          this.actors[i].onTap(tap.x, tap.y, this.particles, this.audio);
+        const actor = this.actors[i];
+        // Skip launch pad and rockets for hit testing — they don't consume taps
+        if (actor instanceof LaunchPad || actor instanceof Rocket) continue;
+        if (actor.hitTest(tap.x, tap.y)) {
+          actor.onTap(tap.x, tap.y, this.particles, this.audio);
           hit = true;
           break;
         }
       }
+
+      // Any tap that doesn't hit another actor → launch a rocket toward that point
       if (!hit) {
-        this.particles.burst(tap.x, tap.y, 10, {
+        this._launchRocket(tap.x, tap.y);
+        // Also show particles at tap point
+        this.particles.burst(tap.x, tap.y, 8, {
           colors: ['#FFD700', '#FF6B6B', '#4ECDC4', '#FF9FF3', '#A8E6CF'],
-          minSpeed: 35, maxSpeed: 110, gravity: 120,
+          minSpeed: 25, maxSpeed: 80, gravity: 120,
         });
       }
     }
 
     // ── Drawing ───────────────────────────────────────────
-    const pointers = this.input.getActivePointers();
     const currentIds = new Set(pointers.map(p => p.id));
 
     for (const p of pointers) {
@@ -118,7 +163,6 @@ export class World {
 
       this.keyLabels.push(label);
 
-      // Particle burst around where the label appears
       this.particles.burst(label.x, label.y, 18, {
         colors: [
           `hsl(${label.hue}, 100%, 60%)`,
@@ -148,6 +192,7 @@ export class World {
         const dist = Math.hypot(rocket.x - target.x, rocket.y - target.y);
         if (dist < (rocket.size + target.size) * 0.45) {
           target.explode(this.particles, this.audio);
+          rocket.alive = false; // rocket consumed on hit
           this.score += 1;
           this.scorePop = 1;
         }
@@ -162,7 +207,7 @@ export class World {
     this.targetTimer -= dt;
     if (this.targetTimer <= 0) {
       this._spawnTarget();
-      this.targetTimer = 4 + Math.random() * 5;
+      this.targetTimer = 3 + Math.random() * 4;
     }
 
     // ── Score animation ─────────────────────────────────
@@ -212,8 +257,7 @@ export class World {
   _spawnTarget() {
     const margin = 80;
     const x = margin + Math.random() * (this.w - margin * 2);
-    // Targets appear in the sky area (top 55% of screen)
-    const y = margin + Math.random() * (this.h * 0.45);
+    const y = margin + Math.random() * (this.h * 0.40);
     const t = new Target(x, y);
     this.actors.push(t);
   }
