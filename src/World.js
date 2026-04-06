@@ -115,6 +115,7 @@ export class World {
     }
 
     this.bg.update(dt);
+    this.audio.music.update(dt, this.bg.time);
 
     // ── Pointer tracking for aim line ──────────────────
     const pointers = this.input.getActivePointers();

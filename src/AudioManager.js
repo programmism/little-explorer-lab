@@ -1,3 +1,5 @@
+import { MusicManager } from './MusicManager.js';
+
 // Descriptive names for special keys (spoken aloud)
 const SPEAK_NAMES = {
   ' ':          'Space',
@@ -22,6 +24,7 @@ const SILENT_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock']);
 export class AudioManager {
   constructor() {
     this._ctx = null;
+    this.music = new MusicManager();
     this._speechVoice = null;
     this._speechReady = false;
     this._initSpeech();
@@ -65,6 +68,7 @@ export class AudioManager {
   unlock() {
     if (this._ctx) return;
     this._ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.music.start(this._ctx);
   }
 
   _osc(freq, type, duration, volume = 0.3, startFreq = null) {
