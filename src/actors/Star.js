@@ -13,6 +13,8 @@ export class Star extends Actor {
     this.scaleTarget = 1;
     this.hidden = false;
     this.hideTimer = 0;
+    this.tiltOffsetX = 0;
+    this.tiltOffsetY = 0;
   }
 
   update(dt, w, h) {
@@ -40,7 +42,7 @@ export class Star extends Actor {
   draw(ctx) {
     if (this.scale < 0.01) return;
     ctx.save();
-    ctx.translate(this.x, this.y);
+    ctx.translate(this.x + this.tiltOffsetX, this.y + this.tiltOffsetY);
     ctx.rotate(this.rotAngle);
     ctx.scale(this.scale, this.scale);
     ctx.font = `${this.size}px serif`;

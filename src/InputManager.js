@@ -24,7 +24,12 @@ export class InputManager {
     this._exitOverlay = document.getElementById('exit-overlay');
     this._exitCountdown = document.getElementById('exit-countdown');
 
+    // Device tilt (accelerometer) — normalized to roughly -1..1
+    this._tilt = { x: 0, y: 0 };
+    this._tiltAvailable = false;
+
     this._bindEvents();
+    this._bindTilt();
   }
 
   _bindEvents() {
@@ -207,6 +212,42 @@ export class InputManager {
       this._exitTimer = null;
     }
     this._exitOverlay.classList.remove('visible');
+  }
+
+  _bindTilt() {
+    if (typeof DeviceOrientationEvent === 'undefined') return;
+
+    const listen = () => {
+      window.addEventListener('deviceorientation', (e) => {
+        // gamma: left-right tilt (-90..90), beta: front-back tilt (-180..180)
+        if (e.gamma == null || e.beta == null) return;
+        this._tiltAvailable = true;
+        // Normalize to roughly -1..1 (clamp at ±45 degrees)
+        this._tilt = {
+          x: Math.max(-1, Math.min(1, e.gamma / 45)),
+          y: Math.max(-1, Math.min(1, (e.beta - 45) / 45)),
+        };
+      });
+    };
+
+    // iOS 13+ requires explicit permission request
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      // Attach a one-time user-gesture handler to request permission
+      const requestOnce = () => {
+        DeviceOrientationEvent.requestPermission()
+          .then(state => { if (state === 'granted') listen(); })
+          .catch(() => {});
+        window.removeEventListener('touchstart', requestOnce);
+      };
+      window.addEventListener('touchstart', requestOnce);
+    } else {
+      listen();
+    }
+  }
+
+  /** Returns current device tilt as {x, y} in roughly -1..1 range. */
+  getTilt() {
+    return this._tilt;
   }
 
   consumeSwipeEvents() {
