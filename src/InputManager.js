@@ -1,4 +1,8 @@
 export class InputManager {
+  // Thresholds for distinguishing taps from drags
+  static TAP_MAX_DISTANCE = 15;   // px — movement beyond this = drag
+  static TAP_MAX_DURATION = 200;  // ms — held longer than this = drag
+
   constructor(canvas) {
     this.canvas = canvas;
     this._taps = [];
@@ -10,6 +14,10 @@ export class InputManager {
     // Swipe event queue for SceneManager
     this._swipeEvents = [];
     this._mouseDownPos = null;
+
+    // Per-pointer tracking for tap vs drag classification
+    this._pointerStarts = new Map(); // id → { x, y, time }
+    this._drawingPointers = new Set(); // pointers confirmed as drawing
 
     this._exitHoldStart = null;
     this._exitTimer = null;
@@ -30,24 +38,27 @@ export class InputManager {
       this.mousePos = pos;
       this._mouseDownPos = { ...pos };
       this._swipeEvents.push({ type: 'down', ...pos });
+      this._pointerStarts.set('mouse', { x: pos.x, y: pos.y, time: Date.now() });
       this._onDown(pos);
     });
     c.addEventListener('mousemove', e => {
       e.preventDefault();
-      this.mousePos = this._mousePos(e);
+      const pos = this._mousePos(e);
+      this.mousePos = pos;
       if (this.mouseDown) {
-        this._swipeEvents.push({ type: 'move', ...this.mousePos });
+        this._swipeEvents.push({ type: 'move', ...pos });
       }
+      this._checkDragThreshold('mouse', pos);
     });
     c.addEventListener('mouseup', e => {
       e.preventDefault();
       const pos = this._mousePos(e);
       this.mouseDown = false;
       this._swipeEvents.push({ type: 'up', ...pos });
-      this._onUp(pos);
+      this._onUp('mouse', pos);
     });
 
-    // Touch — only track the first touch for swipe detection
+    // Touch — track all touches; first touch also feeds swipe detection
     c.addEventListener('touchstart', e => {
       e.preventDefault();
       for (const t of e.changedTouches) {
@@ -57,6 +68,7 @@ export class InputManager {
         if (e.touches.length === 1) {
           this._swipeEvents.push({ type: 'down', ...pos });
         }
+        this._pointerStarts.set(t.identifier, { x: pos.x, y: pos.y, time: Date.now() });
         this._onDown(pos);
       }
     }, { passive: false });
@@ -72,6 +84,7 @@ export class InputManager {
           if (t.identifier === e.touches[0]?.identifier) {
             this._swipeEvents.push({ type: 'move', ...pos });
           }
+          this._checkDragThreshold(t.identifier, pos);
         }
       }
     }, { passive: false });
@@ -82,13 +95,17 @@ export class InputManager {
         const pos = this._touchPos(t);
         this._swipeEvents.push({ type: 'up', ...pos });
         this.activeTouches.delete(t.identifier);
-        this._onUp(pos);
+        this._onUp(t.identifier, pos);
       }
     }, { passive: false });
 
     c.addEventListener('touchcancel', e => {
       e.preventDefault();
-      for (const t of e.changedTouches) this.activeTouches.delete(t.identifier);
+      for (const t of e.changedTouches) {
+        this.activeTouches.delete(t.identifier);
+        this._pointerStarts.delete(t.identifier);
+        this._drawingPointers.delete(t.identifier);
+      }
       this._cancelExit();
     }, { passive: false });
 
@@ -133,8 +150,32 @@ export class InputManager {
     }
   }
 
-  _onUp(pos) {
-    this._taps.push(pos);
+  _checkDragThreshold(id, pos) {
+    const start = this._pointerStarts.get(id);
+    if (!start || this._drawingPointers.has(id)) return;
+    const dist = Math.hypot(pos.x - start.x, pos.y - start.y);
+    if (dist >= InputManager.TAP_MAX_DISTANCE) {
+      this._drawingPointers.add(id);
+    }
+  }
+
+  _onUp(id, pos) {
+    const start = this._pointerStarts.get(id);
+    const wasDrawing = this._drawingPointers.has(id);
+
+    // Clean up pointer tracking
+    this._pointerStarts.delete(id);
+    this._drawingPointers.delete(id);
+
+    // Classify: only emit a tap if the pointer stayed close and was brief
+    if (start && !wasDrawing) {
+      const dist = Math.hypot(pos.x - start.x, pos.y - start.y);
+      const duration = Date.now() - start.time;
+      if (dist < InputManager.TAP_MAX_DISTANCE && duration < InputManager.TAP_MAX_DURATION) {
+        this._taps.push(pos);
+      }
+    }
+
     if (this._exitHoldStart !== null) {
       this._exitHoldStart = null;
       this._cancelExit();
@@ -184,6 +225,11 @@ export class InputManager {
     const keys = this._keys;
     this._keys = [];
     return keys;
+  }
+
+  // Returns true if a pointer has exceeded the drag threshold
+  isDrawing(id) {
+    return this._drawingPointers.has(id);
   }
 
   // Returns [{id, x, y}] for all currently held pointers

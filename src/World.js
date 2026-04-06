@@ -11,7 +11,9 @@ import { Target } from './actors/Target.js';
 import { LaunchPad } from './actors/LaunchPad.js';
 import { Fish } from './actors/Fish.js';
 import { Astronaut } from './actors/Astronaut.js';
+import { Companion } from './actors/Companion.js';
 import { GoalManager } from './GoalManager.js';
+import { CollectionManager } from './CollectionManager.js';
 import { SceneManager, SCENE_CONFIGS } from './SceneManager.js';
 
 export class World {
@@ -36,11 +38,10 @@ export class World {
 
     this.emergentTimer = 6 + Math.random() * 10;
     this.targetTimer = 3;
-    this.score = 0;
-    this.scoreDisplay = 0;
-    this.scorePop = 0;
 
     this.goals = new GoalManager();
+    this.album = new CollectionManager();
+    this.companion = null;
     this._prevW = this.w;
     this._prevH = this.h;
 
@@ -95,6 +96,10 @@ export class World {
       const ty = h * (0.08 + Math.random() * 0.25);
       actors.push(new Target(tx, ty));
     }
+
+    // Companion owl — bottom-left, above the road
+    this.companion = new Companion(50, h * 0.70 - 10);
+    actors.push(this.companion);
   }
 
   _spawnSpace() {
@@ -214,6 +219,11 @@ export class World {
     this.audio.music.update(dt, this.bg.time);
     this.sceneManager.update(dt);
 
+    // ── Feed time-of-day to companion ────────────────────
+    if (this.companion) {
+      this.companion.timeOfDay = this.bg.time;
+    }
+
     // ── Pointer tracking for aim line ──────────────────
     const pointers = this.input.getActivePointers();
     if (pointers.length > 0 && this.launchPad) {
@@ -239,9 +249,28 @@ export class World {
     const taps = this.input.consumeTaps();
     if (taps.length > 0) this.audio.unlock();
 
+    // Notify companion of activity on any tap
+    if (taps.length > 0 && this.companion) {
+      this.companion.notifyActivity();
+    }
+
     for (const tap of taps) {
       // Don't process taps during transition
       if (this.sceneManager.transitioning) continue;
+
+      // Album icon tap — toggle open/close
+      if (this.album.hitTestIcon(tap.x, tap.y)) {
+        this.album.toggle();
+        continue;
+      }
+
+      // If album is open, tap outside panel closes it; swallow the tap
+      if (this.album.open) {
+        if (this.album.hitTestOutsidePanel(tap.x, tap.y, this.w, this.h)) {
+          this.album.open = false;
+        }
+        continue;
+      }
 
       let hit = false;
       for (let i = this.actors.length - 1; i >= 0; i--) {
@@ -263,10 +292,14 @@ export class World {
       }
     }
 
-    // ── Drawing ───────────────────────────────────────────
+    // ── Drawing (only for pointers that exceeded the drag threshold) ──
     const currentIds = new Set(pointers.map(p => p.id));
+    const drawingIds = new Set();
 
     for (const p of pointers) {
+      if (!this.input.isDrawing(p.id)) continue; // not dragging yet — skip
+
+      drawingIds.add(p.id);
       if (!this._prevPointerIds.has(p.id)) {
         this.drawing.startStroke(p.id, p.x, p.y);
       } else {
@@ -274,9 +307,9 @@ export class World {
       }
     }
     for (const id of this._prevPointerIds) {
-      if (!currentIds.has(id)) this.drawing.endStroke(id);
+      if (!drawingIds.has(id)) this.drawing.endStroke(id);
     }
-    this._prevPointerIds = currentIds;
+    this._prevPointerIds = drawingIds;
 
     this.drawing.update(dt);
 
@@ -299,6 +332,9 @@ export class World {
 
       this.audio.sparkle();
       this.audio.speakLetter(key);
+
+      // Notify companion of keyboard activity
+      if (this.companion) this.companion.notifyActivity();
     }
 
     this.keyLabels = this.keyLabels.filter(l => l.alive);
@@ -319,12 +355,14 @@ export class World {
         const dist = Math.hypot(rocket.x - target.x, rocket.y - target.y);
         if (dist < (rocket.size + target.size) * 0.45) {
           target.explode(this.particles, this.audio);
-          rocket.alive = false;
-          this.score += 1;
-          this.scorePop = 1;
+          rocket.alive = false; // rocket consumed on hit
+          this.album.collect(target.emoji);
           const goalDone = this.goals.recordHit();
           if (goalDone) {
             this.goals.triggerCelebration(this.particles, this.audio, this.w, this.h);
+            if (this.companion) this.companion.goalComplete();
+          } else {
+            if (this.companion) this.companion.goalHit();
           }
         }
       }
@@ -361,9 +399,8 @@ export class World {
     // ── Goal tracking ─────────────────────────────────
     this.goals.update(dt);
 
-    // ── Score animation ─────────────────────────────────
-    this.scoreDisplay += (this.score - this.scoreDisplay) * dt * 8;
-    this.scorePop = Math.max(0, this.scorePop - dt * 3);
+    // ── Collection album ──────────────────────────────
+    this.album.update(dt);
 
     // ── Emergent events ───────────────────────────────────
     this.emergentTimer -= dt;
@@ -379,7 +416,13 @@ export class World {
 
     for (let s = 0; s < this.sceneActors.length; s++) {
       for (const actor of this.sceneActors[s]) {
-        if (actor instanceof LaunchPad) {
+        if (actor instanceof Companion) {
+          // Fixed position: bottom-left, above road
+          actor.baseX = 50;
+          actor.baseY = newH * 0.70 - 10;
+          actor.x = actor.baseX;
+          actor.y = actor.baseY;
+        } else if (actor instanceof LaunchPad) {
           actor.x = newW * 0.5;
           actor.y = newH * (s === 0 ? 0.72 : s === 1 ? 0.85 : 0.88);
         } else if (actor instanceof Car) {
@@ -526,6 +569,9 @@ export class World {
 
     // Goal progress stars
     this.goals.draw(ctx, w);
+
+    // ── Collection album icon + panel ────────────────
+    this.album.draw(ctx, w, h);
 
     // Scene dot indicators
     sm.drawIndicators(ctx, w, h);
